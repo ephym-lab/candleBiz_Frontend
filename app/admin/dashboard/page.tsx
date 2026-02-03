@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import type { Order, Product } from "@/lib/api/types"
 import { getProducts } from "@/lib/api/services/products"
 import { getOrders } from "@/lib/api/services/orders"
+import { NewsletterBroadcast } from "@/components/admin/newsletter-broadcast"
 
 export default function AdminDashboardPage() {
   const [products, setProducts] = useState<Product[]>([])
@@ -210,6 +211,9 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Newsletter Broadcast */}
+      <NewsletterBroadcast />
 
       {/* Order Status Breakdown */}
       <Card>

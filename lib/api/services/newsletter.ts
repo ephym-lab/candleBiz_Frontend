@@ -27,3 +27,30 @@ export async function unsubscribe(email: string) {
     )
     return response
 }
+
+/**
+ * Broadcast newsletter to all subscribers (Admin only)
+ */
+export async function broadcastNewsletter(subject: string, htmlBody: string, token: string) {
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/v1'
+
+    const response = await fetch(`${baseURL}${API_ENDPOINTS.NEWSLETTER_BROADCAST}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+            subject,
+            html_body: htmlBody
+        })
+    })
+
+    if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.detail || 'Failed to broadcast newsletter')
+    }
+
+    const data = await response.json()
+    return { data }
+}

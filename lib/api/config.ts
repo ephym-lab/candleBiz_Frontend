@@ -41,4 +41,5 @@ export const API_ENDPOINTS = {
     // Newsletter
     NEWSLETTER_SUBSCRIBE: '/newsletter/subscribe',
     NEWSLETTER_UNSUBSCRIBE: '/newsletter/unsubscribe',
+    NEWSLETTER_BROADCAST: '/newsletter/admin/broadcast',
 } as const
