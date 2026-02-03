@@ -1,24 +1,86 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Package, ShoppingCart, DollarSign, TrendingUp, Users, ArrowUpRight, ArrowDownRight } from "lucide-react"
-import { mockOrders } from "@/lib/orders"
-import { products } from "@/lib/products"
-import { calculateGrowth } from "@/lib/analytics"
-import { RevenueChart } from "@/components/admin/revenue-chart"
-import { MonthlyOrdersChart } from "@/components/admin/monthly-orders-chart"
-import { TopProductsWidget } from "@/components/admin/top-products-widget"
-import { LowStockAlert } from "@/components/admin/low-stock-alert"
+import { Package, ShoppingCart, DollarSign, TrendingUp, Loader2, AlertCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { toast } from "sonner"
+import type { Order, Product } from "@/lib/api/types"
+import { getProducts } from "@/lib/api/services/products"
+import { getOrders } from "@/lib/api/services/orders"
 
 export default function AdminDashboardPage() {
-  // Calculate statistics
-  const totalOrders = mockOrders.length
-  const totalRevenue = mockOrders.reduce((sum, order) => sum + order.total, 0)
+  const [products, setProducts] = useState<Product[]>([])
+  const [orders, setOrders] = useState<Order[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch dashboard data
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        setIsLoading(true)
+        const [productsData, ordersData] = await Promise.all([
+          getProducts(),
+          getOrders()
+        ])
+        setProducts(productsData.products || [])
+        setOrders(ordersData)
+        setError(null)
+      } catch (err) {
+        console.error("Failed to fetch dashboard data:", err)
+        setError("Failed to load dashboard data")
+        toast.error("Failed to load dashboard data")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [])
+
+  // Calculate statistics from API data
+  const totalOrders = orders.length
+  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0)
   const totalProducts = products.length
   const lowStockProducts = products.filter((p) => p.stock < 10).length
+  const recentOrders = orders.slice(0, 5)
 
-  const recentOrders = mockOrders.slice(0, 5)
-  const growth = calculateGrowth()
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "delivered":
+        return "text-green-600"
+      case "processing":
+        return "text-blue-600"
+      case "cancelled":
+        return "text-red-600"
+      case "shipped":
+        return "text-purple-600"
+      case "paid":
+        return "text-emerald-600"
+      default:
+        return "text-yellow-600"
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <AlertCircle className="h-12 w-12 text-destructive" />
+        <p className="text-muted-foreground">{error}</p>
+        <Button onClick={() => window.location.reload()}>Retry</Button>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">
@@ -36,20 +98,7 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">KES {totalRevenue.toLocaleString()}</div>
-            <div className="flex items-center gap-1 text-xs mt-1">
-              {growth.revenueGrowth >= 0 ? (
-                <>
-                  <ArrowUpRight className="h-3 w-3 text-green-600" />
-                  <span className="text-green-600">+{growth.revenueGrowth.toFixed(1)}%</span>
-                </>
-              ) : (
-                <>
-                  <ArrowDownRight className="h-3 w-3 text-red-600" />
-                  <span className="text-red-600">{growth.revenueGrowth.toFixed(1)}%</span>
-                </>
-              )}
-              <span className="text-muted-foreground">from last month</span>
-            </div>
+            <p className="text-xs text-muted-foreground mt-1">From {totalOrders} orders</p>
           </CardContent>
         </Card>
 
@@ -60,20 +109,9 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalOrders}</div>
-            <div className="flex items-center gap-1 text-xs mt-1">
-              {growth.ordersGrowth >= 0 ? (
-                <>
-                  <ArrowUpRight className="h-3 w-3 text-green-600" />
-                  <span className="text-green-600">+{growth.ordersGrowth.toFixed(1)}%</span>
-                </>
-              ) : (
-                <>
-                  <ArrowDownRight className="h-3 w-3 text-red-600" />
-                  <span className="text-red-600">{growth.ordersGrowth.toFixed(1)}%</span>
-                </>
-              )}
-              <span className="text-muted-foreground">from last month</span>
-            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {orders.filter(o => o.status === "delivered").length} delivered
+            </p>
           </CardContent>
         </Card>
 
@@ -100,61 +138,98 @@ export default function AdminDashboardPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">KES {Math.round(totalRevenue / totalOrders).toLocaleString()}</div>
+            <div className="text-2xl font-bold">
+              KES {totalOrders > 0 ? Math.round(totalRevenue / totalOrders).toLocaleString() : 0}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">Per order</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts Grid */}
+      {/* Recent Orders and Low Stock */}
       <div className="grid gap-4 md:grid-cols-2">
-        <RevenueChart />
-        <MonthlyOrdersChart />
-      </div>
-
-      {/* Widgets Grid */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <TopProductsWidget />
-
         {/* Recent Orders */}
         <Card>
           <CardHeader>
             <CardTitle>Recent Orders</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentOrders.map((order) => (
-                <div key={order.id} className="flex items-center justify-between border-b pb-4 last:border-0">
-                  <div>
-                    <p className="font-medium">{order.customerName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {order.items.length} item(s) • {order.orderDate}
-                    </p>
+            {recentOrders.length > 0 ? (
+              <div className="space-y-4">
+                {recentOrders.map((order) => (
+                  <div key={order.id} className="flex items-center justify-between border-b pb-4 last:border-0">
+                    <div>
+                      <p className="font-medium">{order.customerName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {order.items.length} item(s) • {new Date(order.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">KES {order.total.toLocaleString()}</p>
+                      <p className={`text-sm capitalize ${getStatusColor(order.status)}`}>
+                        {order.status}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium">KES {order.total.toLocaleString()}</p>
-                    <p
-                      className={`text-sm capitalize ${order.status === "delivered"
-                          ? "text-green-600"
-                          : order.status === "processing"
-                            ? "text-blue-600"
-                            : order.status === "cancelled"
-                              ? "text-red-600"
-                              : "text-yellow-600"
-                        }`}
-                    >
-                      {order.status}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">No orders yet</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Low Stock Alert */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Low Stock Alert</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {lowStockProducts > 0 ? (
+              <div className="space-y-4">
+                {products
+                  .filter((p) => p.stock < 10)
+                  .slice(0, 5)
+                  .map((product) => (
+                    <div key={product.id} className="flex items-center justify-between border-b pb-4 last:border-0">
+                      <div>
+                        <p className="font-medium">{product.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {product.scent} • {product.size}
+                        </p>
+                      </div>
+                      <Badge variant={product.stock < 5 ? "destructive" : "secondary"}>
+                        {product.stock} left
+                      </Badge>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">All products are well stocked</p>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Low Stock Alert */}
-      <LowStockAlert />
+      {/* Order Status Breakdown */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Order Status Breakdown</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+            {["pending", "paid", "processing", "shipped", "delivered", "cancelled"].map((status) => {
+              const count = orders.filter((o) => o.status === status).length
+              return (
+                <div key={status} className="text-center p-4 border rounded-lg">
+                  <p className="text-2xl font-bold">{count}</p>
+                  <p className="text-sm text-muted-foreground capitalize">{status}</p>
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

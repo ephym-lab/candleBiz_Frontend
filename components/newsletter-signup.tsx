@@ -10,8 +10,9 @@ import { toast } from "sonner"
 export function NewsletterSignup() {
     const [email, setEmail] = useState("")
     const [isSubscribed, setIsSubscribed] = useState(false)
+    const [isLoading, setIsLoading] = useState(false)
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
         if (!email) {
@@ -19,13 +20,22 @@ export function NewsletterSignup() {
             return
         }
 
-        // Simulate newsletter signup
-        setIsSubscribed(true)
-        toast.success("Successfully subscribed to our newsletter!")
-        setEmail("")
+        setIsLoading(true)
 
-        // Reset after 3 seconds
-        setTimeout(() => setIsSubscribed(false), 3000)
+        try {
+            const { subscribe } = await import("@/lib/api/services/newsletter")
+            await subscribe(email)
+            setIsSubscribed(true)
+            toast.success("Successfully subscribed to our newsletter!")
+            setEmail("")
+
+            // Reset after 3 seconds
+            setTimeout(() => setIsSubscribed(false), 3000)
+        } catch (error) {
+            toast.error("Failed to subscribe. Please try again.")
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     return (
@@ -61,13 +71,15 @@ export function NewsletterSignup() {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     className="flex-1 bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground placeholder:text-primary-foreground/50"
+                                    disabled={isLoading}
                                 />
                                 <Button
                                     type="submit"
                                     size="lg"
                                     className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+                                    disabled={isLoading}
                                 >
-                                    Subscribe
+                                    {isLoading ? "Subscribing..." : "Subscribe"}
                                 </Button>
                             </form>
                         )}

@@ -16,14 +16,15 @@ interface ReviewFormProps {
 }
 
 export function ReviewForm({ productId, productName }: ReviewFormProps) {
-    const { addReview } = useReviews()
     const [isOpen, setIsOpen] = useState(false)
     const [rating, setRating] = useState(0)
     const [hoveredRating, setHoveredRating] = useState(0)
     const [author, setAuthor] = useState("")
+    const [email, setEmail] = useState("")
     const [comment, setComment] = useState("")
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
         if (rating === 0) {
@@ -41,19 +42,33 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
             return
         }
 
-        addReview(productId, {
-            author: author.trim(),
-            rating,
-            comment: comment.trim(),
-        })
+        setIsSubmitting(true)
 
-        toast.success("Thank you for your review!")
+        try {
+            const { createReview } = await import("@/lib/api/services/reviews")
+            await createReview(productId, {
+                author: author.trim(),
+                email: email.trim() || undefined,
+                rating,
+                comment: comment.trim(),
+            })
 
-        // Reset form
-        setRating(0)
-        setAuthor("")
-        setComment("")
-        setIsOpen(false)
+            toast.success("Thank you for your review!")
+
+            // Reset form
+            setRating(0)
+            setAuthor("")
+            setEmail("")
+            setComment("")
+            setIsOpen(false)
+
+            // Refresh the page to show new review
+            window.location.reload()
+        } catch (error) {
+            toast.error("Failed to submit review. Please try again.")
+        } finally {
+            setIsSubmitting(false)
+        }
     }
 
     if (!isOpen) {
@@ -87,8 +102,8 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
                                 >
                                     <Star
                                         className={`h-8 w-8 ${star <= (hoveredRating || rating)
-                                                ? "fill-primary text-primary"
-                                                : "fill-muted text-muted-foreground"
+                                            ? "fill-primary text-primary"
+                                            : "fill-muted text-muted-foreground"
                                             }`}
                                     />
                                 </button>
@@ -105,7 +120,24 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
                             onChange={(e) => setAuthor(e.target.value)}
                             placeholder="Enter your name"
                             maxLength={50}
+                            disabled={isSubmitting}
                         />
+                    </div>
+
+                    {/* Email (Optional) */}
+                    <div className="space-y-2">
+                        <Label htmlFor="email">Email (Optional)</Label>
+                        <Input
+                            id="email"
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="your@email.com"
+                            disabled={isSubmitting}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Provide your email to get verified purchase badge
+                        </p>
                     </div>
 
                     {/* Comment */}
@@ -118,6 +150,7 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
                             placeholder="Tell us what you think about this candle..."
                             rows={4}
                             maxLength={500}
+                            disabled={isSubmitting}
                         />
                         <p className="text-xs text-muted-foreground text-right">
                             {comment.length}/500 characters
@@ -126,8 +159,8 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
 
                     {/* Buttons */}
                     <div className="flex gap-2">
-                        <Button type="submit" className="flex-1">
-                            Submit Review
+                        <Button type="submit" className="flex-1" disabled={isSubmitting}>
+                            {isSubmitting ? "Submitting..." : "Submit Review"}
                         </Button>
                         <Button
                             type="button"
@@ -136,8 +169,10 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
                                 setIsOpen(false)
                                 setRating(0)
                                 setAuthor("")
+                                setEmail("")
                                 setComment("")
                             }}
+                            disabled={isSubmitting}
                         >
                             Cancel
                         </Button>

@@ -79,7 +79,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCart([])
   }
 
-  const cartTotal = cart.reduce((total, item) => total + item.product.price * item.quantity, 0)
+  const cartTotal = cart.reduce((total, item) => {
+    const product = item.product
+    let price = product.price
+    const bundleOffer = product.bundle_offer || product.bundleOffer
+    if (bundleOffer && item.quantity >= bundleOffer.quantity) {
+      price = Math.round(product.price * (1 - bundleOffer.discount / 100))
+    }
+    return total + price * item.quantity
+  }, 0)
 
   const cartCount = cart.reduce((count, item) => count + item.quantity, 0)
 

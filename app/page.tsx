@@ -4,15 +4,24 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
-import { products } from "@/lib/products"
 import { Star, Sparkles, Leaf, Heart } from "lucide-react"
 import { TestimonialsSection } from "@/components/testimonials-section"
 import { NewsletterSignup } from "@/components/newsletter-signup"
 import { TrustBadges } from "@/components/trust-badges"
 import { BundleDeals } from "@/components/bundle-deals"
+import { getTopSellingProducts } from "@/lib/api/services/products"
+import type { TopSellingProduct } from "@/lib/api/types"
 
-export default function HomePage() {
-  const featuredProducts = products.slice(0, 4)
+export default async function HomePage() {
+  // Fetch top-selling products for featured section
+  let featuredProducts: TopSellingProduct[] = []
+  try {
+    featuredProducts = await getTopSellingProducts(4)
+  } catch (error) {
+    console.error("Failed to fetch featured products:", error)
+    // Fallback to empty array if API fails
+    featuredProducts = []
+  }
 
   return (
     <div className="flex min-h-screen flex-col">

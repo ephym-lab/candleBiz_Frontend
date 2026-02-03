@@ -1,46 +1,85 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { products, scents, sizes, priceRanges } from "@/lib/products"
-import { Star, Filter } from "lucide-react"
+import { scents, sizes, priceRanges } from "@/lib/products"
+import { Star, Filter, Loader2, Search, X } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { WishlistButton } from "@/components/wishlist-button"
 import { QuickViewButton } from "@/components/quick-view-modal"
 import { Breadcrumbs } from "@/components/breadcrumbs"
+import type { Product } from "@/lib/api/types"
 
 export default function ShopPage() {
+  const [products, setProducts] = useState<Product[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isSearching, setIsSearching] = useState(false)
+
   const [selectedScent, setSelectedScent] = useState("All")
   const [selectedSize, setSelectedSize] = useState("All")
   const [selectedPriceRange, setSelectedPriceRange] = useState("All")
   const [sortBy, setSortBy] = useState("featured")
 
-  const filteredProducts = useMemo(() => {
-    let filtered = [...products]
+  // Fetch products from API
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        setIsLoading(true)
+        const { getProducts } = await import("@/lib/api/services/products")
+        const { searchProducts } = await import("@/lib/api/services/products")
 
-    // Filter by scent
-    if (selectedScent !== "All") {
-      filtered = filtered.filter((product) => product.scent === selectedScent)
-    }
+        let response
 
-    // Filter by size
-    if (selectedSize !== "All") {
-      filtered = filtered.filter((product) => product.size === selectedSize)
-    }
+        // If there's a search query, use search endpoint
+        if (searchQuery.trim()) {
+          setIsSearching(true)
+          response = await searchProducts(searchQuery.trim())
+        } else {
+          setIsSearching(false)
+          // Build filters for regular product fetch
+          const filters: any = {}
+          if (selectedScent !== "All") filters.scent = selectedScent.toLowerCase()
+          if (selectedSize !== "All") filters.size = selectedSize.toLowerCase()
+          if (selectedPriceRange !== "All") {
+            const range = priceRanges.find((r) => r.label === selectedPriceRange)
+            if (range) {
+              filters.min_price = range.min
+              filters.max_price = range.max === Infinity ? undefined : range.max
+            }
+          }
 
-    // Filter by price range
-    if (selectedPriceRange !== "All") {
-      const range = priceRanges.find((r) => r.label === selectedPriceRange)
-      if (range) {
-        filtered = filtered.filter((product) => product.price >= range.min && product.price < range.max)
+          response = await getProducts(filters)
+        }
+
+        setProducts(response.products || [])
+        setError(null)
+      } catch (err) {
+        console.error("Failed to fetch products:", err)
+        setError("Failed to load products. Please try again.")
+      } finally {
+        setIsLoading(false)
       }
     }
+
+    // Debounce search
+    const timeoutId = setTimeout(() => {
+      fetchProducts()
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [selectedScent, selectedSize, selectedPriceRange, searchQuery])
+
+  const filteredProducts = useMemo(() => {
+    let filtered = [...products]
 
     // Sort products
     switch (sortBy) {
@@ -62,7 +101,7 @@ export default function ShopPage() {
     }
 
     return filtered
-  }, [selectedScent, selectedSize, selectedPriceRange, sortBy])
+  }, [products, sortBy])
 
   const clearFilters = () => {
     setSelectedScent("All")
@@ -82,8 +121,8 @@ export default function ShopPage() {
               key={scent}
               onClick={() => setSelectedScent(scent)}
               className={`block w-full rounded-md px-3 py-2 text-left text-sm transition-colors ${selectedScent === scent
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted/50 text-foreground hover:bg-muted"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted/50 text-foreground hover:bg-muted"
                 }`}
             >
               {scent}
@@ -100,8 +139,8 @@ export default function ShopPage() {
               key={size}
               onClick={() => setSelectedSize(size)}
               className={`block w-full rounded-md px-3 py-2 text-left text-sm transition-colors ${selectedSize === size
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted/50 text-foreground hover:bg-muted"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted/50 text-foreground hover:bg-muted"
                 }`}
             >
               {size}
@@ -118,8 +157,8 @@ export default function ShopPage() {
               key={range.label}
               onClick={() => setSelectedPriceRange(range.label)}
               className={`block w-full rounded-md px-3 py-2 text-left text-sm transition-colors ${selectedPriceRange === range.label
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted/50 text-foreground hover:bg-muted"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted/50 text-foreground hover:bg-muted"
                 }`}
             >
               {range.label}
@@ -168,6 +207,33 @@ export default function ShopPage() {
 
               {/* Products Grid */}
               <div className="flex-1">
+                {/* Search Bar */}
+                <div className="mb-6">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Search products..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 pr-10"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  {isSearching && searchQuery && (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Searching for "{searchQuery}"... {filteredProducts.length} results found
+                    </p>
+                  )}
+                </div>
+
                 {/* Mobile Filter and Sort Bar */}
                 <div className="mb-6 flex items-center justify-between gap-4">
                   <Sheet>
@@ -214,8 +280,26 @@ export default function ShopPage() {
                   Showing {filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"}
                 </p>
 
+                {/* Loading State */}
+                {isLoading && (
+                  <div className="flex flex-col items-center justify-center py-16">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                    <p className="mt-4 text-muted-foreground">Loading products...</p>
+                  </div>
+                )}
+
+                {/* Error State */}
+                {error && !isLoading && (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <p className="text-lg font-medium text-destructive">{error}</p>
+                    <Button onClick={() => window.location.reload()} className="mt-4">
+                      Try Again
+                    </Button>
+                  </div>
+                )}
+
                 {/* Products Grid */}
-                {filteredProducts.length > 0 ? (
+                {!isLoading && !error && filteredProducts.length > 0 ? (
                   <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                     {filteredProducts.map((product) => (
                       <div key={product.id}>
@@ -234,7 +318,7 @@ export default function ShopPage() {
                                 </div>
                               )}
                               <div className="absolute right-2 bottom-2">
-                                <WishlistButton product={product} variant="outline" />
+                                <WishlistButton product={{ ...product, reviews: [] }} variant="outline" />
                               </div>
                             </div>
                           </Link>
@@ -255,13 +339,13 @@ export default function ShopPage() {
                                 </div>
                               </div>
                             </Link>
-                            <QuickViewButton product={product} />
+                            <QuickViewButton product={{ ...product, reviews: [] }} />
                           </CardContent>
                         </Card>
                       </div>
                     ))}
                   </div>
-                ) : (
+                ) : !isLoading && !error ? (
                   <div className="flex flex-col items-center justify-center py-16 text-center">
                     <p className="text-lg font-medium text-foreground">No products found</p>
                     <p className="mt-2 text-sm text-muted-foreground">Try adjusting your filters</p>
@@ -269,7 +353,7 @@ export default function ShopPage() {
                       Clear Filters
                     </Button>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           </div>

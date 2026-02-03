@@ -6,13 +6,12 @@ import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { products } from "@/lib/products"
 import { useCart } from "@/lib/cart-context"
 import { useRecentlyViewed } from "@/lib/recently-viewed-context"
-import { useReviews } from "@/lib/reviews-context"
-import { Star, Minus, Plus, ShoppingCart, Check, Package, Leaf, Heart, ArrowLeft, Clock, Flame } from "lucide-react"
+import { Star, Minus, Plus, ShoppingCart, Check, Package, Leaf, Heart, ArrowLeft, Clock, Flame, Loader2, Tag } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { ImageGallery } from "@/components/image-gallery"
 import { WishlistButton } from "@/components/wishlist-button"
@@ -20,26 +19,72 @@ import { Breadcrumbs } from "@/components/breadcrumbs"
 import { RelatedProducts } from "@/components/related-products"
 import { RecentlyViewed } from "@/components/recently-viewed"
 import { ReviewForm } from "@/components/review-form"
+import type { Product, Review } from "@/lib/api/types"
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const router = useRouter()
   const { addToCart } = useCart()
   const { addToRecentlyViewed } = useRecentlyViewed()
-  const { getProductReviews } = useReviews()
   const [quantity, setQuantity] = useState(1)
   const [addedToCart, setAddedToCart] = useState(false)
+  const [product, setProduct] = useState<Product | null>(null)
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const product = products.find((p) => p.id === resolvedParams.id)
-
-  // Track product view
+  // Fetch product and reviews from API
   useEffect(() => {
-    if (product) {
-      addToRecentlyViewed(product)
-    }
-  }, [product, addToRecentlyViewed])
+    async function fetchProductData() {
+      try {
+        setIsLoading(true)
+        const { getProduct } = await import("@/lib/api/services/products")
+        const { getProductReviews } = await import("@/lib/api/services/reviews")
 
-  if (!product) {
+        const [productData, reviewsData] = await Promise.all([
+          getProduct(resolvedParams.id),
+          getProductReviews(resolvedParams.id, true) // Only fetch verified reviews
+        ])
+
+        setProduct(productData)
+        // Ensure reviews is always an array
+        setReviews(Array.isArray(reviewsData) ? reviewsData : [])
+        setError(null)
+
+        // Track product view (convert API product to local type)
+        if (productData) {
+          addToRecentlyViewed({ ...productData, reviews: [] })
+        }
+      } catch (err) {
+        console.error("Failed to fetch product:", err)
+        setError("Failed to load product. Please try again.")
+        setReviews([]) // Set empty array on error
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchProductData()
+  }, [resolvedParams.id, addToRecentlyViewed])
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Navigation />
+        <main className="flex flex-1 items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="text-muted-foreground">Loading product...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  // Error or not found state
+  if (error || !product) {
     return (
       <div className="flex min-h-screen flex-col">
         <Navigation />
@@ -56,7 +101,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     )
   }
 
-  const relatedProducts = products.filter((p) => p.scent === product.scent && p.id !== product.id).slice(0, 3)
+  // Related products will be fetched separately if needed
+  const relatedProducts: Product[] = []
 
   const handleAddToCart = () => {
     addToCart(product, quantity)
@@ -132,24 +178,64 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                       ))}
                     </div>
                     <span className="text-sm text-muted-foreground">
-                      {product.rating} ({product.reviews.length} reviews)
+                      {product.rating} ({reviews.length} reviews)
                     </span>
                   </div>
 
-                  <div className="mt-4 flex items-center gap-3">
-                    <p className="text-3xl font-bold text-primary">KES {product.price.toLocaleString()}</p>
-                    {product.burnTime && (
-                      <div className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-                        <Flame className="h-4 w-4" />
-                        {product.burnTime}h burn time
+                  <div className="mt-4 flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      {product.bundle_offer && quantity >= product.bundle_offer.quantity ? (
+                        <div className="flex items-center gap-2">
+                          <p className="text-3xl font-bold text-primary">
+                            KES {Math.round(product.price * (1 - product.bundle_offer.discount / 100)).toLocaleString()}
+                          </p>
+                          <p className="text-lg text-muted-foreground line-through">
+                            KES {product.price.toLocaleString()}
+                          </p>
+                          <Badge variant="destructive">
+                            Save {product.bundle_offer.discount}%
+                          </Badge>
+                        </div>
+                      ) : (
+                        <p className="text-3xl font-bold text-primary">KES {product.price.toLocaleString()}</p>
+                      )}
+
+                      {product.burn_time && (
+                        <div className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary ml-auto">
+                          <Flame className="h-4 w-4" />
+                          {product.burn_time}h burn time
+                        </div>
+                      )}
+                    </div>
+
+                    {product.bundle_offer && (
+                      <div className={`text-sm rounded-md p-3 border ${quantity >= product.bundle_offer.quantity
+                          ? "bg-green-50 text-green-700 border-green-200"
+                          : "bg-blue-50 text-blue-700 border-blue-200"
+                        }`}>
+                        <div className="flex items-center gap-2 font-medium">
+                          <Tag className="h-4 w-4" />
+                          <span>Special Offer: {product.bundle_offer.description}</span>
+                        </div>
+                        {quantity < product.bundle_offer.quantity && (
+                          <p className="mt-1 ml-6 text-xs opacity-90">
+                            Add {product.bundle_offer.quantity - quantity} more unit{product.bundle_offer.quantity - quantity > 1 && 's'} to save {product.bundle_offer.discount}%!
+                          </p>
+                        )}
+                        {quantity >= product.bundle_offer.quantity && (
+                          <p className="mt-1 ml-6 text-xs font-semibold flex items-center gap-1">
+                            <Check className="h-3 w-3" />
+                            Discount applied!
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
 
                   <p className="mt-6 text-muted-foreground leading-relaxed">{product.description}</p>
-                  {product.scentDescription && (
+                  {product.scent_description && (
                     <p className="mt-4 text-sm text-muted-foreground leading-relaxed italic">
-                      {product.scentDescription}
+                      {product.scent_description}
                     </p>
                   )}
                 </div>
@@ -245,17 +331,17 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 </div>
 
                 {/* Care Instructions & Ingredients */}
-                {(product.careInstructions || product.ingredients) && (
+                {(product.care_instructions || product.ingredients) && (
                   <div className="mt-8 border-t border-border pt-8">
                     <Accordion type="single" collapsible className="w-full">
-                      {product.careInstructions && (
+                      {product.care_instructions && (
                         <AccordionItem value="care">
                           <AccordionTrigger className="text-left font-semibold">
                             Care Instructions
                           </AccordionTrigger>
                           <AccordionContent>
                             <ul className="space-y-2 text-sm text-muted-foreground">
-                              {product.careInstructions.map((instruction, index) => (
+                              {product.care_instructions.map((instruction: string, index: number) => (
                                 <li key={index} className="flex items-start gap-2">
                                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary" />
                                   {instruction}
@@ -272,7 +358,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                           </AccordionTrigger>
                           <AccordionContent>
                             <ul className="space-y-2 text-sm text-muted-foreground">
-                              {product.ingredients.map((ingredient, index) => (
+                              {product.ingredients.map((ingredient: string, index: number) => (
                                 <li key={index} className="flex items-start gap-2">
                                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary" />
                                   {ingredient}
@@ -302,17 +388,19 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
             {/* All Reviews */}
             <div className="mt-8 space-y-6">
-              {/* User submitted reviews */}
-              {getProductReviews(product.id).map((review) => (
+              {/* API reviews */}
+              {reviews.map((review: Review) => (
                 <Card key={review.id} className="border-2 border-primary/20">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="font-semibold text-foreground">{review.author}</p>
-                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                            Verified Purchase
-                          </span>
+                          {review.verified && (
+                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                              Verified Purchase
+                            </span>
+                          )}
                         </div>
                         <div className="mt-1 flex items-center gap-1">
                           {[...Array(5)].map((_, i) => (
@@ -325,7 +413,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                         </div>
                       </div>
                       <span className="text-sm text-muted-foreground">
-                        {new Date(review.date).toLocaleDateString("en-US", {
+                        {new Date(review.created_at).toLocaleDateString("en-US", {
                           year: "numeric",
                           month: "long",
                           day: "numeric",
@@ -337,42 +425,21 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 </Card>
               ))}
 
-              {/* Existing product reviews */}
-              {product.reviews.map((review) => (
-                <Card key={review.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-semibold text-foreground">{review.author}</p>
-                        <div className="mt-1 flex items-center gap-1">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`h-4 w-4 ${i < review.rating ? "fill-primary text-primary" : "fill-muted text-muted-foreground"
-                                }`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(review.date).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </span>
-                    </div>
-                    <p className="mt-4 text-muted-foreground leading-relaxed">{review.comment}</p>
+              {/* Show message if no reviews */}
+              {reviews.length === 0 && (
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <p className="text-muted-foreground">No reviews yet. Be the first to review this product!</p>
                   </CardContent>
                 </Card>
-              ))}
+              )}
             </div>
           </div>
         </section>
 
         {/* Related Products */}
         <div className="container mx-auto px-4">
-          <RelatedProducts currentProductId={product.id} relatedProductIds={product.relatedProducts} />
+          <RelatedProducts currentProductId={product.id} relatedProductIds={product.related_products || []} />
         </div>
 
         {/* Recently Viewed */}

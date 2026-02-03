@@ -10,7 +10,7 @@ export interface Product {
   size: string
   stock: number
   rating: number
-  reviews: Review[]
+  reviews?: Review[]
   burnTime?: number // Burn time in hours
   careInstructions?: string[]
   ingredients?: string[]
@@ -20,6 +20,16 @@ export interface Product {
     discount: number
     description: string
   }
+  // API compatibility fields
+  bundle_offer?: {
+    quantity: number
+    discount: number
+    description: string
+  }
+  scent_description?: string
+  burn_time?: number
+  care_instructions?: string[]
+  related_products?: string[]
 }
 
 export interface Review {

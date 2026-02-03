@@ -7,7 +7,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { useAdmin } from "@/lib/admin-context"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Package, ShoppingCart, BarChart3, LogOut } from "lucide-react"
+import { Package, ShoppingCart, BarChart3, LogOut, Star } from "lucide-react"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, logout } = useAdmin()
@@ -62,6 +62,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               >
                 <ShoppingCart className="h-4 w-4" />
                 Orders
+              </Link>
+              <Link
+                href="/admin/reviews"
+                className={`flex items-center gap-2 text-sm hover:text-primary transition-colors ${pathname === "/admin/reviews" ? "text-primary font-medium" : "text-muted-foreground"}`}
+              >
+                <Star className="h-4 w-4" />
+                Reviews
               </Link>
             </nav>
           </div>

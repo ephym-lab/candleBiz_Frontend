@@ -1,30 +1,41 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { CheckCircle, Package, Mail, Home, Phone } from "lucide-react"
+import type { Order } from "@/lib/api/types"
 
 export default function OrderSuccessPage() {
-  const [confirmationMessage, setConfirmationMessage] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const orderId = searchParams.get("orderId")
+  const [order, setOrder] = useState<Order | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Read confirmation message from localStorage
-    const stored = localStorage.getItem('orderConfirmation')
-    if (stored) {
+    async function fetchOrder() {
+      if (!orderId) {
+        setIsLoading(false)
+        return
+      }
+
       try {
-        const data = JSON.parse(stored)
-        setConfirmationMessage(data.message)
-        // Clear the message after reading
-        localStorage.removeItem('orderConfirmation')
+        const { getOrder } = await import("@/lib/api/services/orders")
+        const orderData = await getOrder(orderId)
+        setOrder(orderData)
       } catch (error) {
-        console.error('Failed to parse order confirmation:', error)
+        console.error("Failed to fetch order:", error)
+      } finally {
+        setIsLoading(false)
       }
     }
-  }, [])
+
+    fetchOrder()
+  }, [orderId])
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -47,16 +58,15 @@ export default function OrderSuccessPage() {
                 Thank you for your purchase. Your order has been received and is being processed.
               </p>
 
-              {/* Confirmation Call Message */}
-              {confirmationMessage && (
+              {/* Order ID */}
+              {order && (
                 <Card className="mt-6 border-2 border-primary/20 bg-primary/5">
                   <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <Phone className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-foreground font-medium text-left">
-                        {confirmationMessage}
-                      </p>
-                    </div>
+                    <p className="text-sm text-muted-foreground">Order ID</p>
+                    <p className="text-lg font-semibold text-foreground">{order.id}</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Total: <span className="font-semibold text-primary">KES {order.total.toLocaleString()}</span>
+                    </p>
                   </CardContent>
                 </Card>
               )}

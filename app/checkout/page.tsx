@@ -57,6 +57,27 @@ export default function CheckoutPage() {
   const shippingCost = cartTotal >= 3000 ? 0 : 300
   const total = cartTotal + shippingCost
 
+  // Format phone number to match backend pattern: +254XXXXXXXXX
+  const formatPhoneNumber = (phone: string): string => {
+    // Remove all spaces, dashes, and parentheses
+    let cleaned = phone.replace(/[\s\-()]/g, '')
+
+    // If starts with 0, replace with +254
+    if (cleaned.startsWith('0')) {
+      cleaned = '+254' + cleaned.substring(1)
+    }
+    // If starts with 254 but no +, add it
+    else if (cleaned.startsWith('254') && !cleaned.startsWith('+')) {
+      cleaned = '+' + cleaned
+    }
+    // If doesn't start with +254, assume it's a local number and add +254
+    else if (!cleaned.startsWith('+254')) {
+      cleaned = '+254' + cleaned
+    }
+
+    return cleaned
+  }
+
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof OrderFormData, string>> = {}
 
@@ -68,13 +89,22 @@ export default function CheckoutPage() {
     }
     if (!formData.phone.trim()) {
       newErrors.phone = "Phone number is required"
-    } else if (!/^[0-9+\s-()]+$/.test(formData.phone)) {
-      newErrors.phone = "Invalid phone number"
+    } else {
+      const formatted = formatPhoneNumber(formData.phone)
+      // Check if matches backend pattern: +254XXXXXXXXX (exactly 13 characters)
+      if (!/^\+254[0-9]{9}$/.test(formatted)) {
+        newErrors.phone = "Phone must be in format +254XXXXXXXXX (e.g., +254712345678)"
+      }
     }
     if (!formData.address.trim()) newErrors.address = "Address is required"
     if (!formData.city.trim()) newErrors.city = "City is required"
     if (formData.paymentMethod === "mpesa" && !formData.mpesaPhone?.trim()) {
       newErrors.mpesaPhone = "M-Pesa phone number is required"
+    } else if (formData.paymentMethod === "mpesa" && formData.mpesaPhone) {
+      const formatted = formatPhoneNumber(formData.mpesaPhone)
+      if (!/^\+254[0-9]{9}$/.test(formatted)) {
+        newErrors.mpesaPhone = "Phone must be in format +254XXXXXXXXX"
+      }
     }
 
     setErrors(newErrors)
@@ -90,19 +120,46 @@ export default function CheckoutPage() {
 
     setIsSubmitting(true)
 
-    // Simulate order processing
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    try {
+      const { createOrder } = await import("@/lib/api/services/orders")
 
-    // Clear cart and redirect to success page with message
-    clearCart()
+      // Prepare order data matching backend schema
+      const orderData = {
+        customerName: formData.fullName,
+        email: formData.email,
+        phone: formatPhoneNumber(formData.phone), // Format phone number
+        address: formData.address,
+        city: formData.city,
+        county: formData.city, // Using city as county for now
+        items: cart.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity
+        })),
+        paymentMethod: formData.paymentMethod,
+        ...(formData.paymentMethod === "mpesa" && formData.mpesaPhone && {
+          mpesaPhone: formatPhoneNumber(formData.mpesaPhone) // Format M-Pesa phone
+        })
+      }
 
-    // Store order confirmation message
-    localStorage.setItem('orderConfirmation', JSON.stringify({
-      message: 'Thank you for your order! You will receive a confirmation call shortly to verify your delivery details.',
-      paymentMethod: formData.paymentMethod
-    }))
+      // Log the order data being sent
+      console.log("Creating order with data:", JSON.stringify(orderData, null, 2))
 
-    router.push("/order-success")
+      const order = await createOrder(orderData)
+
+      // Clear cart
+      clearCart()
+
+      // Store order ID and redirect to success page
+      router.push(`/order-success?orderId=${order.id}`)
+    } catch (error) {
+      console.error("Order creation failed:", error)
+
+      // Show detailed error message
+      const errorMessage = error instanceof Error ? error.message : "Failed to create order. Please try again."
+      alert(errorMessage)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleInputChange = (field: keyof OrderFormData, value: string) => {
@@ -175,7 +232,7 @@ export default function CheckoutPage() {
                             type="tel"
                             value={formData.phone}
                             onChange={(e) => handleInputChange("phone", e.target.value)}
-                            placeholder="+254 700 000 000"
+                            placeholder="+254712345678 or 0712345678"
                             className={errors.phone ? "border-destructive" : ""}
                           />
                           {errors.phone && <p className="mt-1 text-sm text-destructive">{errors.phone}</p>}
@@ -262,7 +319,7 @@ export default function CheckoutPage() {
                             type="tel"
                             value={formData.mpesaPhone}
                             onChange={(e) => handleInputChange("mpesaPhone", e.target.value)}
-                            placeholder="+254 700 000 000"
+                            placeholder="+254712345678 or 0712345678"
                             className={errors.mpesaPhone ? "border-destructive" : ""}
                           />
                           {errors.mpesaPhone && <p className="mt-1 text-sm text-destructive">{errors.mpesaPhone}</p>}
