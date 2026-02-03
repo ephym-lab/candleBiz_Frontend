@@ -4,7 +4,7 @@
 
 import { apiClient } from '../client'
 import { API_ENDPOINTS } from '../config'
-import type { ApiResponse, Review, CreateReviewRequest, AdminReviewsResponse } from '../types'
+import type { ApiResponse, Review, CreateReviewRequest, AdminReviewsResponse, VerifiedReviewsResponse } from '../types'
 
 /**
  * Get product reviews
@@ -52,6 +52,16 @@ export async function getAllReviews(verified?: boolean) {
         url += `?verified=${verified}`
     }
     const response = await apiClient.get<ApiResponse<AdminReviewsResponse>>(url, true)
+    return response.data
+}
+
+/**
+ * Get all verified reviews (Public)
+ */
+export async function getVerifiedReviews() {
+    const response = await apiClient.get<ApiResponse<VerifiedReviewsResponse>>(
+        API_ENDPOINTS.VERIFIED_REVIEWS
+    )
     return response.data
 }
 

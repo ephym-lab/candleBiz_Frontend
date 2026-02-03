@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
 
     // Reviews
     ADMIN_REVIEWS: '/admin/reviews',
+    VERIFIED_REVIEWS: '/reviews/verified',
     REVIEW_VERIFY: (productId: string, reviewId: string) => `/products/${productId}/reviews/${reviewId}/verify`,
     REVIEW_UNVERIFY: (productId: string, reviewId: string) => `/products/${productId}/reviews/${reviewId}/unverify`,
     REVIEW_DELETE: (productId: string, reviewId: string) => `/products/${productId}/reviews/${reviewId}`,

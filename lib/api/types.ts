@@ -148,6 +148,23 @@ export interface AdminReviewsResponse {
     unverified_count: number
 }
 
+export interface VerifiedReview {
+    id: string
+    productId: string
+    productName: string
+    customerName: string
+    email: string | null
+    rating: number
+    comment: string
+    verified: boolean
+    createdAt: string
+}
+
+export interface VerifiedReviewsResponse {
+    reviews: VerifiedReview[]
+    count: number
+}
+
 export interface UpdateProductRequest {
     name?: string
     description?: string
