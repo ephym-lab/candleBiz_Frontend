@@ -51,7 +51,6 @@ export default function AdminProductsPage() {
     name: "",
     description: "",
     price: 0,
-    image: "",
     scent: "",
     size: "",
     stock: 0,
@@ -59,10 +58,15 @@ export default function AdminProductsPage() {
     burn_time: undefined,
     care_instructions: [],
     ingredients: [],
-    images: [],
     related_products: [],
     bundle_offer: undefined,
   })
+
+  // File state for image uploads
+  const [mainImageFile, setMainImageFile] = useState<File | null>(null)
+  const [additionalImageFiles, setAdditionalImageFiles] = useState<File[]>([])
+  const [mainImagePreview, setMainImagePreview] = useState<string>("")
+  const [additionalImagePreviews, setAdditionalImagePreviews] = useState<string[]>([])
 
 
   // Fetch products
@@ -103,14 +107,22 @@ export default function AdminProductsPage() {
     setIsSubmitting(true)
 
     try {
-      await createProduct(formData)
+      // Validate main image file is provided
+      if (!mainImageFile) {
+        toast.error("Please select a main product image")
+        setIsSubmitting(false)
+        return
+      }
+
+      await createProduct(formData, mainImageFile, additionalImageFiles)
       toast.success("Product created successfully!")
       setIsDialogOpen(false)
+
+      // Reset form
       setFormData({
         name: "",
         description: "",
         price: 0,
-        image: "",
         scent: "",
         size: "",
         stock: 0,
@@ -118,14 +130,18 @@ export default function AdminProductsPage() {
         burn_time: undefined,
         care_instructions: [],
         ingredients: [],
-        images: [],
         related_products: [],
         bundle_offer: undefined,
       })
+      setMainImageFile(null)
+      setAdditionalImageFiles([])
+      setMainImagePreview("")
+      setAdditionalImagePreviews([])
+
       fetchProducts()
     } catch (err) {
       console.error("Failed to create product:", err)
-      toast.error("Failed to create product")
+      toast.error(err instanceof Error ? err.message : "Failed to create product")
     } finally {
       setIsSubmitting(false)
     }
@@ -139,14 +155,18 @@ export default function AdminProductsPage() {
     setIsSubmitting(true)
 
     try {
-      await updateProduct(selectedProduct.id, formData)
+      await updateProduct(selectedProduct.id, formData, mainImageFile || undefined, additionalImageFiles.length > 0 ? additionalImageFiles : undefined)
       toast.success("Product updated successfully!")
       setIsEditDialogOpen(false)
       setSelectedProduct(null)
+      setMainImageFile(null)
+      setAdditionalImageFiles([])
+      setMainImagePreview("")
+      setAdditionalImagePreviews([])
       fetchProducts()
     } catch (err) {
       console.error("Failed to update product:", err)
-      toast.error("Failed to update product")
+      toast.error(err instanceof Error ? err.message : "Failed to update product")
     } finally {
       setIsSubmitting(false)
     }
@@ -184,6 +204,50 @@ export default function AdminProductsPage() {
     }
   }
 
+  // Handle main image file change
+  const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setMainImageFile(file)
+      // Create preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setMainImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  // Handle additional images file change
+  const handleAdditionalImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length > 2) {
+      toast.error("Maximum 2 additional images allowed")
+      return
+    }
+
+    setAdditionalImageFiles(files)
+
+    // Create previews
+    const previews: string[] = []
+    files.forEach((file) => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        previews.push(reader.result as string)
+        if (previews.length === files.length) {
+          setAdditionalImagePreviews(previews)
+        }
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  // Remove additional image
+  const removeAdditionalImage = (index: number) => {
+    setAdditionalImageFiles(prev => prev.filter((_, i) => i !== index))
+    setAdditionalImagePreviews(prev => prev.filter((_, i) => i !== index))
+  }
+
   // Open edit dialog
   const openEditDialog = (product: Product) => {
     setSelectedProduct(product)
@@ -191,7 +255,6 @@ export default function AdminProductsPage() {
       name: product.name,
       description: product.description,
       price: product.price,
-      image: product.image,
       scent: product.scent,
       size: product.size,
       stock: product.stock,
@@ -199,10 +262,16 @@ export default function AdminProductsPage() {
       burn_time: product.burn_time,
       care_instructions: product.care_instructions || [],
       ingredients: product.ingredients || [],
-      images: product.images || [],
       related_products: product.related_products || [],
       bundle_offer: product.bundle_offer || undefined,
     })
+
+    // Reset file states but set existing images as previews
+    setMainImageFile(null)
+    setAdditionalImageFiles([])
+    setMainImagePreview(product.image || "")
+    setAdditionalImagePreviews(product.images || [])
+
     setIsEditDialogOpen(true)
   }
 
@@ -328,14 +397,57 @@ export default function AdminProductsPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="image">Image URL *</Label>
+                <Label htmlFor="image">Main Product Image *</Label>
                 <Input
                   id="image"
-                  placeholder="https://example.com/image.jpg"
-                  value={formData.image}
-                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleMainImageChange}
                   required
                 />
+                {mainImagePreview && (
+                  <div className="relative w-full h-48 mt-2 rounded-lg overflow-hidden bg-muted">
+                    <Image src={mainImagePreview} alt="Main image preview" fill className="object-cover" />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="additional_images">Additional Images (Optional, max 2)</Label>
+                <Input
+                  id="additional_images"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleAdditionalImagesChange}
+                />
+                {additionalImagePreviews.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {additionalImagePreviews.map((preview, index) => (
+                      <div key={index} className="relative w-full h-32 rounded-lg overflow-hidden bg-muted">
+                        <Image src={preview} alt={`Additional image ${index + 1}`} fill className="object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeAdditionalImage(index)}
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Warning about image permanence */}
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <div className="flex gap-2">
+                  <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-amber-800">
+                    <p className="font-medium">Choose images carefully</p>
+                    <p className="text-amber-700 mt-1">Images cannot be removed after creation, only replaced with new ones. Make sure to select the correct images before submitting.</p>
+                  </div>
+                </div>
               </div>
 
               {/* Optional Fields */}
@@ -601,13 +713,40 @@ export default function AdminProductsPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-image">Image URL *</Label>
+              <Label htmlFor="edit-image">Main Product Image</Label>
               <Input
                 id="edit-image"
-                value={formData.image}
-                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                required
+                type="file"
+                accept="image/*"
+                onChange={handleMainImageChange}
               />
+              <p className="text-xs text-muted-foreground">Leave empty to keep existing image</p>
+              {mainImagePreview && (
+                <div className="relative w-full h-48 mt-2 rounded-lg overflow-hidden bg-muted">
+                  <Image src={mainImagePreview} alt="Main image preview" fill className="object-cover" />
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-additional_images">Additional Images (Optional, max 2)</Label>
+              <Input
+                id="edit-additional_images"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleAdditionalImagesChange}
+              />
+              <p className="text-xs text-muted-foreground">Upload new images to replace existing ones</p>
+              {additionalImagePreviews.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {additionalImagePreviews.map((preview, index) => (
+                    <div key={index} className="relative w-full h-32 rounded-lg overflow-hidden bg-muted">
+                      <Image src={preview} alt={`Additional image ${index + 1}`} fill className="object-cover" />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Optional Fields */}

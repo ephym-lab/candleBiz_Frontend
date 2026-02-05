@@ -1,3 +1,4 @@
+// mock orders data structure and types
 export interface Order {
   id: string
   customerName: string

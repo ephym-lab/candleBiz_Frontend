@@ -149,13 +149,10 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
               {/* Product Image Gallery */}
               <div>
-                {product.images && product.images.length > 0 ? (
-                  <ImageGallery images={product.images} productName={product.name} />
-                ) : (
-                  <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
-                    <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
-                  </div>
-                )}
+                <ImageGallery
+                  images={[product.image, ...(product.images || [])]}
+                  productName={product.name}
+                />
               </div>
 
               {/* Product Info */}
@@ -210,8 +207,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
                     {product.bundle_offer && (
                       <div className={`text-sm rounded-md p-3 border ${quantity >= product.bundle_offer.quantity
-                          ? "bg-green-50 text-green-700 border-green-200"
-                          : "bg-blue-50 text-blue-700 border-blue-200"
+                        ? "bg-green-50 text-green-700 border-green-200"
+                        : "bg-blue-50 text-blue-700 border-blue-200"
                         }`}>
                         <div className="flex items-center gap-2 font-medium">
                           <Tag className="h-4 w-4" />

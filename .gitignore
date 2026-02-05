@@ -24,3 +24,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 *.md
+.env.local

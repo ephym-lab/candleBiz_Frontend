@@ -108,10 +108,52 @@ export async function checkAvailability(productId: string) {
 /**
  * Create new product (Admin only)
  */
-export async function createProduct(productData: UpdateProductRequest) {
-    const response = await apiClient.post<ApiResponse<Product>>(
+export async function createProduct(productData: UpdateProductRequest, imageFile?: File, additionalImages?: File[]) {
+    const formData = new FormData()
+
+    // Required fields
+    if (productData.name) formData.append('name', productData.name)
+    if (productData.description) formData.append('description', productData.description)
+    if (productData.price !== undefined) formData.append('price', productData.price.toString())
+    if (productData.scent) formData.append('scent', productData.scent)
+    if (productData.size) formData.append('size', productData.size)
+    if (productData.stock !== undefined) formData.append('stock', productData.stock.toString())
+
+    // Main image file (required)
+    if (imageFile) {
+        formData.append('image', imageFile)
+    }
+
+    // Additional images (optional, max 2)
+    if (additionalImages && additionalImages.length > 0) {
+        additionalImages.forEach((file) => {
+            formData.append('additional_images', file)
+        })
+    }
+
+    // Optional fields
+    if (productData.scent_description) formData.append('scent_description', productData.scent_description)
+    if (productData.burn_time !== undefined) formData.append('burn_time', productData.burn_time.toString())
+
+    if (productData.care_instructions && productData.care_instructions.length > 0) {
+        formData.append('care_instructions', JSON.stringify(productData.care_instructions))
+    }
+
+    if (productData.ingredients && productData.ingredients.length > 0) {
+        formData.append('ingredients', JSON.stringify(productData.ingredients))
+    }
+
+    if (productData.related_products && productData.related_products.length > 0) {
+        formData.append('related_products', JSON.stringify(productData.related_products))
+    }
+
+    if (productData.bundle_offer) {
+        formData.append('bundle_offer', JSON.stringify(productData.bundle_offer))
+    }
+
+    const response = await apiClient.postFormData<ApiResponse<Product>>(
         API_ENDPOINTS.PRODUCTS,
-        productData,
+        formData,
         true // Include auth
     )
     return response.data
@@ -120,14 +162,57 @@ export async function createProduct(productData: UpdateProductRequest) {
 /**
  * Update product (Admin only)
  */
-export async function updateProduct(id: string, productData: UpdateProductRequest) {
-    const response = await apiClient.patch<ApiResponse<Product>>(
+export async function updateProduct(id: string, productData: UpdateProductRequest, imageFile?: File, additionalImages?: File[]) {
+    const formData = new FormData()
+
+    // Only append fields that are provided
+    if (productData.name) formData.append('name', productData.name)
+    if (productData.description) formData.append('description', productData.description)
+    if (productData.price !== undefined) formData.append('price', productData.price.toString())
+    if (productData.scent) formData.append('scent', productData.scent)
+    if (productData.size) formData.append('size', productData.size)
+    if (productData.stock !== undefined) formData.append('stock', productData.stock.toString())
+
+    // Main image file (optional for update)
+    if (imageFile) {
+        formData.append('image', imageFile)
+    }
+
+    // Additional images (optional, max 2)
+    if (additionalImages && additionalImages.length > 0) {
+        additionalImages.forEach((file) => {
+            formData.append('additional_images', file)
+        })
+    }
+
+    // Optional fields
+    if (productData.scent_description) formData.append('scent_description', productData.scent_description)
+    if (productData.burn_time !== undefined) formData.append('burn_time', productData.burn_time.toString())
+
+    if (productData.care_instructions && productData.care_instructions.length > 0) {
+        formData.append('care_instructions', JSON.stringify(productData.care_instructions))
+    }
+
+    if (productData.ingredients && productData.ingredients.length > 0) {
+        formData.append('ingredients', JSON.stringify(productData.ingredients))
+    }
+
+    if (productData.related_products && productData.related_products.length > 0) {
+        formData.append('related_products', JSON.stringify(productData.related_products))
+    }
+
+    if (productData.bundle_offer) {
+        formData.append('bundle_offer', JSON.stringify(productData.bundle_offer))
+    }
+
+    const response = await apiClient.patchFormData<ApiResponse<Product>>(
         API_ENDPOINTS.PRODUCT_BY_ID(id),
-        productData,
+        formData,
         true // Include auth
     )
     return response.data
 }
+
 
 /**
  * Update product stock (Admin only)

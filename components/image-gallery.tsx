@@ -24,7 +24,7 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
                     src={images[selectedImage] || "/placeholder.svg"}
                     alt={`${productName} - Image ${selectedImage + 1}`}
                     fill
-                    className="object-cover"
+                    className="object-contain"
                     priority
                 />
             </div>

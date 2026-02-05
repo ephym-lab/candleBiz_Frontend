@@ -144,6 +144,50 @@ class ApiClient {
     }
 
     /**
+     * POST request with multipart/form-data (for file uploads)
+     */
+    async postFormData<T>(
+        endpoint: string,
+        formData: FormData,
+        includeAuth: boolean = false
+    ): Promise<T> {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), this.timeout)
+
+        try {
+            const headers: HeadersInit = {}
+
+            if (includeAuth) {
+                const token = this.getAuthToken()
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`
+                }
+            }
+
+            const response = await fetch(`${this.baseURL}${endpoint}`, {
+                method: 'POST',
+                headers,
+                body: formData,
+                signal: controller.signal,
+            })
+
+            clearTimeout(timeoutId)
+            return this.handleResponse<T>(response)
+        } catch (error) {
+            clearTimeout(timeoutId)
+
+            if (error instanceof Error) {
+                if (error.name === 'AbortError') {
+                    throw new Error('Request timeout')
+                }
+                throw error
+            }
+
+            throw new Error('An unexpected error occurred')
+        }
+    }
+
+    /**
      * PATCH request
      */
     async patch<T>(
@@ -160,6 +204,51 @@ class ApiClient {
             includeAuth
         )
     }
+
+    /**
+     * PATCH request with multipart/form-data (for file uploads)
+     */
+    async patchFormData<T>(
+        endpoint: string,
+        formData: FormData,
+        includeAuth: boolean = false
+    ): Promise<T> {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), this.timeout)
+
+        try {
+            const headers: HeadersInit = {}
+
+            if (includeAuth) {
+                const token = this.getAuthToken()
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`
+                }
+            }
+
+            const response = await fetch(`${this.baseURL}${endpoint}`, {
+                method: 'PATCH',
+                headers,
+                body: formData,
+                signal: controller.signal,
+            })
+
+            clearTimeout(timeoutId)
+            return this.handleResponse<T>(response)
+        } catch (error) {
+            clearTimeout(timeoutId)
+
+            if (error instanceof Error) {
+                if (error.name === 'AbortError') {
+                    throw new Error('Request timeout')
+                }
+                throw error
+            }
+
+            throw new Error('An unexpected error occurred')
+        }
+    }
+
 
     /**
      * DELETE request
