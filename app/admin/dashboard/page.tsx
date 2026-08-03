@@ -27,7 +27,7 @@ export default function AdminDashboardPage() {
           getOrders()
         ])
         setProducts(productsData.products || [])
-        setOrders(ordersData)
+        setOrders(ordersData.orders || [])
         setError(null)
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err)

@@ -10,6 +10,7 @@ import type {
     CreateOrderRequest,
     UpdateOrderRequest,
     UpdateOrderStatusRequest,
+    AdminOrdersResponse,
 } from '../types'
 
 /**
@@ -24,23 +25,30 @@ export async function createOrder(orderData: CreateOrderRequest) {
 }
 
 /**
- * Get all orders or filter by email
+ * Get all orders or filter by email with optional pagination
  */
-export async function getOrders(email?: string) {
-    const endpoint = email
-        ? `${API_ENDPOINTS.ORDERS}?email=${encodeURIComponent(email)}`
-        : API_ENDPOINTS.ORDERS
+export async function getOrders(email?: string, page: number = 1, limit: number = 10) {
+    const params = new URLSearchParams()
+    if (email) params.append('email', email)
+    params.append('page', page.toString())
+    params.append('limit', limit.toString())
 
-    const response = await apiClient.get<ApiResponse<Order[]>>(endpoint)
+    const response = await apiClient.get<ApiResponse<AdminOrdersResponse>>(
+        `${API_ENDPOINTS.ORDERS}?${params.toString()}`
+    )
     return response.data
 }
 
 /**
  * Search orders by query
  */
-export async function searchOrders(query: string) {
-    const params = new URLSearchParams({ q: query })
-    const response = await apiClient.get<ApiResponse<Order[]>>(
+export async function searchOrders(query: string, page: number = 1, limit: number = 10) {
+    const params = new URLSearchParams({ 
+        q: query,
+        page: page.toString(),
+        limit: limit.toString()
+    })
+    const response = await apiClient.get<ApiResponse<AdminOrdersResponse>>(
         `${API_ENDPOINTS.ORDER_SEARCH}?${params.toString()}`
     )
     return response.data

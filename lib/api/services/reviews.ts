@@ -44,13 +44,17 @@ export async function createReview(productId: string, reviewData: CreateReviewRe
 }
 
 /**
- * Get all reviews (Admin only)
+ * Get all reviews (Admin only) with optional pagination
  */
-export async function getAllReviews(verified?: boolean) {
-    let url = API_ENDPOINTS.ADMIN_REVIEWS
+export async function getAllReviews(verified?: boolean, page: number = 1, limit: number = 10) {
+    const params = new URLSearchParams()
     if (verified !== undefined) {
-        url += `?verified=${verified}`
+        params.append('verified', String(verified))
     }
+    params.append('page', page.toString())
+    params.append('limit', limit.toString())
+
+    const url = `${API_ENDPOINTS.ADMIN_REVIEWS}?${params.toString()}`
     const response = await apiClient.get<ApiResponse<AdminReviewsResponse>>(url, true)
     return response.data
 }

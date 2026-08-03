@@ -61,6 +61,8 @@ export default function AdminProductsPage() {
   const [selectedScent, setSelectedScent] = useState("all")
   const [selectedSize, setSelectedSize] = useState("all")
   const [viewProduct, setViewProduct] = useState<Product | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pagination, setPagination] = useState<any>(null)
   
   // Sync state with URL if it changes (e.g. clicking a notification while on this page)
   useEffect(() => {
@@ -74,6 +76,9 @@ export default function AdminProductsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isEditingStock, setIsEditingStock] = useState(false)
+  const [newStock, setNewStock] = useState<number | "">("")
+  const [isUpdatingStock, setIsUpdatingStock] = useState(false)
 
   // Form state for new product
   const [formData, setFormData] = useState<UpdateProductRequest>({
@@ -105,12 +110,13 @@ export default function AdminProductsPage() {
       let response
 
       if (searchQuery.trim()) {
-        response = await searchProducts(searchQuery.trim())
+        response = await searchProducts(searchQuery.trim(), currentPage)
       } else {
-        response = await getProducts()
+        response = await getProducts({ page: currentPage })
       }
 
       setProducts(response.products || [])
+      setPagination(response.pagination || null)
       setError(null)
     } catch (err) {
       console.error("Failed to fetch products:", err)
@@ -128,7 +134,7 @@ export default function AdminProductsPage() {
     }, 300)
 
     return () => clearTimeout(timeoutId)
-  }, [searchQuery])
+  }, [searchQuery, currentPage])
 
   // Handle create product
   const handleCreateProduct = async (e: React.FormEvent) => {
@@ -226,6 +232,9 @@ export default function AdminProductsPage() {
     try {
       await updateStock(productId, newStock)
       toast.success("Stock updated successfully!")
+      if (viewProduct?.id === productId) {
+        setViewProduct({ ...viewProduct, stock: newStock })
+      }
       fetchProducts()
     } catch (err) {
       console.error("Failed to update stock:", err)
@@ -586,6 +595,38 @@ export default function AdminProductsPage() {
             </SelectContent>
           </Select>
         </div>
+        
+        {/* Pagination Controls */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between mt-8 mb-4 border-t pt-4">
+            <p className="text-sm text-muted-foreground">
+              Showing <span className="font-medium text-foreground">{products.length}</span> of <span className="font-medium text-foreground">{pagination.total}</span> products
+            </p>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || isLoading}
+                className="h-9 px-4 rounded-full"
+              >
+                Previous
+              </Button>
+              <div className="flex items-center justify-center min-w-[2rem]">
+                <span className="text-sm font-medium">{currentPage} / {pagination.totalPages}</span>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+                disabled={currentPage === pagination.totalPages || isLoading}
+                className="h-9 px-4 rounded-full"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Products Grid */}
@@ -950,10 +991,51 @@ export default function AdminProductsPage() {
                       <p className="text-sm font-medium capitalize">{viewProduct.size}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Inventory</p>
-                      <p className={`text-sm font-medium ${viewProduct.stock < 10 ? 'text-red-600' : 'text-foreground'}`}>
-                        {viewProduct.stock} units
-                      </p>
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Inventory</p>
+                        {!isEditingStock && (
+                          <button onClick={() => { setIsEditingStock(true); setNewStock(viewProduct.stock); }} className="text-xs text-[#F26419] hover:underline font-medium">Edit</button>
+                        )}
+                      </div>
+                      {isEditingStock ? (
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            type="number" 
+                            value={newStock} 
+                            onChange={(e) => setNewStock(e.target.value === "" ? "" : Number(e.target.value))} 
+                            className="h-8 w-20 px-2 text-sm" 
+                            disabled={isUpdatingStock} 
+                          />
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-8 w-8 p-0" 
+                            onClick={() => setIsEditingStock(false)} 
+                            disabled={isUpdatingStock}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            className="h-8 px-3 bg-[#F26419] hover:bg-[#F26419]/90 text-white" 
+                            disabled={isUpdatingStock} 
+                            onClick={async () => {
+                              if (newStock !== "") {
+                                setIsUpdatingStock(true);
+                                await handleStockUpdate(viewProduct.id, newStock);
+                                setIsUpdatingStock(false);
+                                setIsEditingStock(false);
+                              }
+                            }}
+                          >
+                            {isUpdatingStock ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className={`text-sm font-medium ${viewProduct.stock < 10 ? 'text-red-600' : 'text-foreground'}`}>
+                          {viewProduct.stock} units
+                        </p>
+                      )}
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Added</p>

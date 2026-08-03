@@ -84,11 +84,16 @@ export interface Order {
     total: number
     paymentMethod: 'mpesa' | 'cash'
     mpesaPhone?: string
-    mpesaTransactionId?: string | null
+    mpesaTransactionId?: string
     status: 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
     orderDate: string
     createdAt: string
     updatedAt: string
+}
+
+export interface AdminOrdersResponse {
+    orders: Order[]
+    pagination?: PaginationMeta
 }
 
 // Review Types
@@ -146,6 +151,7 @@ export interface AdminReviewsResponse {
     count: number
     verified_count: number
     unverified_count: number
+    pagination?: PaginationMeta
 }
 
 export interface VerifiedReview {

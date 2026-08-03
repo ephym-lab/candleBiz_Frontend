@@ -50,7 +50,7 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
                                 <Star className="h-4 w-4 fill-primary text-primary" />
                                 <span className="text-sm font-medium">{product.rating}</span>
                             </div>
-                            <span className="text-sm text-muted-foreground">({product.reviews.length} reviews)</span>
+                            <span className="text-sm text-muted-foreground">({product.reviews?.length || 0} reviews)</span>
                         </div>
 
                         {/* Price */}
