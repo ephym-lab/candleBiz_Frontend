@@ -411,7 +411,7 @@ export default function AdminProductsPage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="stock">Stock *</Label>
-                      <Input id="stock" type="number" placeholder="15" value={formData.stock || ""} onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })} required className="h-10 rounded-lg" />
+                      <Input id="stock" type="number" placeholder="15" value={formData.stock !== undefined ? formData.stock : ""} onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })} required className="h-10 rounded-lg" />
                     </div>
                   </div>
                 </div>
@@ -729,7 +729,7 @@ export default function AdminProductsPage() {
                   </div>
 
                   {product.stock === 0 ? (
-                    <Button size="sm" className="h-7 text-[11px] px-3 bg-[#111] hover:bg-black text-white rounded-md">
+                    <Button size="sm" className="h-7 text-[11px] px-3 bg-[#111] hover:bg-black text-white rounded-md" onClick={() => openEditDialog(product)}>
                       Reorder
                     </Button>
                   ) : (
@@ -807,7 +807,7 @@ export default function AdminProductsPage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="edit-stock">Stock *</Label>
-                      <Input id="edit-stock" type="number" value={formData.stock || ""} onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })} required className="h-10 rounded-lg" />
+                      <Input id="edit-stock" type="number" value={formData.stock !== undefined ? formData.stock : ""} onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })} required className="h-10 rounded-lg" />
                     </div>
                   </div>
                 </div>
