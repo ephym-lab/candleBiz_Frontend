@@ -31,6 +31,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Sheet,
+  SheetTrigger,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Edit, Trash2, Plus, Loader2, AlertCircle, Search, X, MoreHorizontal, LayoutGrid, List as ListIcon, Filter, ChevronRight, Settings2 } from "lucide-react"
@@ -52,6 +60,7 @@ export default function AdminProductsPage() {
   const [activeTab, setActiveTab] = useState("all")
   const [selectedScent, setSelectedScent] = useState("all")
   const [selectedSize, setSelectedSize] = useState("all")
+  const [viewProduct, setViewProduct] = useState<Product | null>(null)
   
   // Sync state with URL if it changes (e.g. clicking a notification while on this page)
   useEffect(() => {
@@ -340,18 +349,18 @@ export default function AdminProductsPage() {
             <Loader2 className={`h-3 w-3 text-muted-foreground ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
+        <Sheet open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <SheetTrigger asChild>
             <Button className="bg-[#F26419] hover:bg-[#F26419]/90 text-white font-medium rounded-md">
               <Plus className="h-4 w-4 mr-2" />
               Add Product
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Add New Product</DialogTitle>
-              <DialogDescription>Create a new candle product for your store</DialogDescription>
-            </DialogHeader>
+          </SheetTrigger>
+          <SheetContent className="sm:max-w-xl overflow-y-auto w-full">
+            <SheetHeader className="mb-6">
+              <SheetTitle>Add New Product</SheetTitle>
+              <SheetDescription>Create a new candle product for your store</SheetDescription>
+            </SheetHeader>
             <form onSubmit={handleCreateProduct} className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
@@ -598,16 +607,16 @@ export default function AdminProductsPage() {
                 </Button>
               </div>
             </form>
-          </DialogContent>
-        </Dialog>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* Tabs and Secondary Filters */}
-      <div className="bg-white rounded-xl border shadow-sm mb-6 flex flex-col">
+      <div className="mb-8 flex flex-col gap-6">
         {/* Tabs Row */}
-        <div className="flex items-center justify-between border-b px-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-md">
-            <TabsList className="bg-transparent h-auto p-0 gap-6">
+        <div className="flex items-center justify-between border-b pb-0">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="bg-transparent h-auto p-0 gap-8">
               <TabsTrigger value="all" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-[#F26419] rounded-none px-1 py-3 font-medium text-sm text-muted-foreground data-[state=active]:text-foreground">
                 All
               </TabsTrigger>
@@ -622,73 +631,52 @@ export default function AdminProductsPage() {
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          
-          <div className="hidden sm:flex items-center gap-3 text-sm font-medium text-muted-foreground">
-            <Button variant="ghost" size="sm" className="h-8 gap-2 text-muted-foreground">
-              <Settings2 className="h-4 w-4" /> View Settings
-            </Button>
-          </div>
         </div>
         
         {/* Filters Row */}
-        <div className="flex items-center justify-between p-3 gap-3 flex-wrap">
-          <div className="flex items-center gap-3 flex-wrap flex-1">
-            <div className="relative w-full max-w-xs">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9 bg-muted/30 border-muted/50 rounded-lg"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-            </div>
-
-            <Select value={selectedScent} onValueChange={setSelectedScent}>
-              <SelectTrigger className="h-9 w-[130px] bg-muted/30 border-muted/50 rounded-lg">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Scents</SelectItem>
-                {scents.map((s) => (
-                  <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedSize} onValueChange={setSelectedSize}>
-              <SelectTrigger className="h-9 w-[110px] bg-muted/30 border-muted/50 rounded-lg">
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Sizes</SelectItem>
-                {sizes.map((s) => (
-                  <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Button variant="outline" size="sm" className="h-9 gap-2 rounded-lg border-muted/50">
-              Advance Filter <ChevronRight className="h-3 w-3 rotate-90" />
-            </Button>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-10 rounded-lg shadow-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
-          <div className="flex items-center gap-1 border rounded-lg p-0.5 bg-muted/20">
-            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md bg-white shadow-sm">
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-muted-foreground">
-              <ListIcon className="h-4 w-4" />
-            </Button>
-          </div>
+          <Select value={selectedScent} onValueChange={setSelectedScent}>
+            <SelectTrigger className="h-10 w-[150px] rounded-lg shadow-sm">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Scents</SelectItem>
+              {scents.map((s) => (
+                <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedSize} onValueChange={setSelectedSize}>
+            <SelectTrigger className="h-10 w-[130px] rounded-lg shadow-sm">
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sizes</SelectItem>
+              {sizes.map((s) => (
+                <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -796,7 +784,7 @@ export default function AdminProductsPage() {
                       Reorder
                     </Button>
                   ) : (
-                    <Button variant="outline" size="icon" className="h-7 w-7 rounded-md border-muted/60">
+                    <Button variant="outline" size="icon" className="h-7 w-7 rounded-md border-muted/60" onClick={() => setViewProduct(product)}>
                       <ChevronRight className="h-3 w-3" />
                     </Button>
                   )}
@@ -819,13 +807,13 @@ export default function AdminProductsPage() {
         </div>
       )}
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Product</DialogTitle>
-            <DialogDescription>Update product details</DialogDescription>
-          </DialogHeader>
+      {/* Edit Sheet */}
+      <Sheet open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <SheetContent className="sm:max-w-xl overflow-y-auto w-full">
+          <SheetHeader className="mb-6">
+            <SheetTitle>Edit Product</SheetTitle>
+            <SheetDescription>Update product details</SheetDescription>
+          </SheetHeader>
           <form onSubmit={handleEditProduct} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -1056,16 +1044,16 @@ export default function AdminProductsPage() {
               </Button>
             </div>
           </form>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete "{selectedProduct?.name}". This action cannot be undone.
+              This action cannot be undone. This will permanently delete the product "{selectedProduct?.name}".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1077,6 +1065,122 @@ export default function AdminProductsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* View Product Sheet */}
+      <Sheet open={viewProduct !== null} onOpenChange={(open) => !open && setViewProduct(null)}>
+        <SheetContent className="sm:max-w-md overflow-y-auto">
+          {viewProduct && (
+            <>
+              <SheetHeader className="mb-6">
+                <SheetTitle className="text-xl">Product Details</SheetTitle>
+                <SheetDescription>View all information about this product.</SheetDescription>
+              </SheetHeader>
+              
+              <div className="space-y-6">
+                {/* Image Section */}
+                <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-muted border">
+                  <Image 
+                    src={viewProduct.image || "/placeholder.svg"} 
+                    alt={viewProduct.name} 
+                    fill 
+                    className="object-cover" 
+                  />
+                  <div className="absolute top-3 right-3">
+                    <Badge variant={viewProduct.stock > 0 ? "secondary" : "destructive"} className="shadow-sm">
+                      {viewProduct.stock > 0 ? 'Active' : 'Out of Stock'}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Main Details */}
+                <div>
+                  <h2 className="text-2xl font-semibold mb-1">{viewProduct.name}</h2>
+                  <p className="text-sm text-muted-foreground mb-4">SKU: {viewProduct.id}</p>
+                  
+                  <div className="flex items-center justify-between border-y py-4 mb-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Retail Price</p>
+                      <p className="text-lg font-bold">KES {viewProduct.price.toLocaleString()}</p>
+                    </div>
+                    {viewProduct.bundle_offer && (
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground mb-1">Wholesale (Bundle)</p>
+                        <p className="text-lg font-bold">
+                          KES {Math.round(viewProduct.price * (1 - viewProduct.bundle_offer.discount / 100)).toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <p className="text-sm leading-relaxed">{viewProduct.description}</p>
+                </div>
+
+                {/* Categorization & Inventory */}
+                <div className="grid grid-cols-2 gap-4 bg-muted/30 p-4 rounded-xl border">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Category</p>
+                    <p className="text-sm font-medium capitalize">{viewProduct.scent}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Type/Size</p>
+                    <p className="text-sm font-medium capitalize">{viewProduct.size}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Inventory</p>
+                    <p className={`text-sm font-medium ${viewProduct.stock < 10 ? 'text-red-600' : 'text-foreground'}`}>
+                      {viewProduct.stock} units
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Added</p>
+                    <p className="text-sm font-medium">
+                      {new Date(viewProduct.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Additional Images (if any exist) */}
+                {viewProduct.images && viewProduct.images.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold mb-3">Additional Images</h3>
+                    <div className="flex gap-3 overflow-x-auto pb-2">
+                      {viewProduct.images.map((img: string, i: number) => (
+                        <div key={i} className="relative h-24 w-24 rounded-lg overflow-hidden border flex-shrink-0">
+                          <Image src={img} alt={`${viewProduct.name} ${i+1}`} fill className="object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button 
+                    className="flex-1" 
+                    variant="outline" 
+                    onClick={() => {
+                      setViewProduct(null)
+                      openEditDialog(viewProduct)
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-2" /> Edit
+                  </Button>
+                  <Button 
+                    className="flex-1 text-destructive border-destructive hover:bg-destructive/10" 
+                    variant="outline"
+                    onClick={() => {
+                      setViewProduct(null)
+                      openDeleteDialog(viewProduct)
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" /> Delete
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
