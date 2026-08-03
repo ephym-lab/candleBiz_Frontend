@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/sheet"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Trash2, Plus, Loader2, AlertCircle, Search, X, MoreHorizontal, LayoutGrid, List as ListIcon, Filter, ChevronRight, Settings2 } from "lucide-react"
+import { Edit, Trash2, Plus, Loader2, AlertCircle, Search, X, MoreHorizontal, LayoutGrid, List as ListIcon, Filter, ChevronRight, Settings2, Upload } from "lucide-react"
 import Image from "next/image"
 import { toast } from "sonner"
 import type { Product, UpdateProductRequest } from "@/lib/api/types"
@@ -345,9 +345,6 @@ export default function AdminProductsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Products</h1>
-          <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full" onClick={fetchProducts}>
-            <Loader2 className={`h-3 w-3 text-muted-foreground ${isLoading ? 'animate-spin' : ''}`} />
-          </Button>
         </div>
         <Sheet open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <SheetTrigger asChild>
@@ -356,254 +353,166 @@ export default function AdminProductsPage() {
               Add Product
             </Button>
           </SheetTrigger>
-          <SheetContent className="sm:max-w-xl overflow-y-auto w-full">
-            <SheetHeader className="mb-6">
-              <SheetTitle>Add New Product</SheetTitle>
-              <SheetDescription>Create a new candle product for your store</SheetDescription>
-            </SheetHeader>
-            <form onSubmit={handleCreateProduct} className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Product Name *</Label>
-                  <Input
-                    id="name"
-                    placeholder="e.g. Lavender Dreams"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="price">Price (KES) *</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    placeholder="1200"
-                    value={formData.price || ""}
-                    onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description *</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Describe the candle..."
-                  rows={3}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="scent">Scent *</Label>
-                  <Select value={formData.scent} onValueChange={(value) => setFormData({ ...formData, scent: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select scent" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {scents.map((scent) => (
-                        <SelectItem key={scent} value={scent}>
-                          {scent}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="size">Size *</Label>
-                  <Select value={formData.size} onValueChange={(value) => setFormData({ ...formData, size: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select size" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sizes.map((size) => (
-                        <SelectItem key={size} value={size}>
-                          {size}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="stock">Stock *</Label>
-                  <Input
-                    id="stock"
-                    type="number"
-                    placeholder="15"
-                    value={formData.stock || ""}
-                    onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="image">Main Product Image *</Label>
-                <Input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleMainImageChange}
-                  required
-                />
-                {mainImagePreview && (
-                  <div className="relative w-full h-48 mt-2 rounded-lg overflow-hidden bg-muted">
-                    <Image src={mainImagePreview} alt="Main image preview" fill className="object-cover" />
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="additional_images">Additional Images (Optional, max 2)</Label>
-                <Input
-                  id="additional_images"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleAdditionalImagesChange}
-                />
-                {additionalImagePreviews.length > 0 && (
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {additionalImagePreviews.map((preview, index) => (
-                      <div key={index} className="relative w-full h-32 rounded-lg overflow-hidden bg-muted">
-                        <Image src={preview} alt={`Additional image ${index + 1}`} fill className="object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => removeAdditionalImage(index)}
-                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Warning about image permanence */}
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                <div className="flex gap-2">
-                  <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-amber-800">
-                    <p className="font-medium">Choose images carefully</p>
-                    <p className="text-amber-700 mt-1">Images cannot be removed after creation, only replaced with new ones. Make sure to select the correct images before submitting.</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Optional Fields */}
-              <div className="border-t pt-4 mt-4">
-                <h4 className="text-sm font-medium mb-3">Optional Details</h4>
+          <SheetContent className="sm:max-w-xl w-full flex flex-col p-0 border-l">
+            <div className="px-6 py-5 border-b bg-muted/10">
+              <SheetHeader>
+                <SheetTitle className="text-xl font-semibold">Add New Product</SheetTitle>
+                <SheetDescription>Create a new candle product for your store</SheetDescription>
+              </SheetHeader>
+            </div>
+            
+            <form onSubmit={handleCreateProduct} className="flex flex-col flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                {/* Basic Info Section */}
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="scent_description">Scent Description</Label>
-                    <Textarea
-                      id="scent_description"
-                      placeholder="Describe the scent profile..."
-                      rows={2}
-                      value={formData.scent_description || ""}
-                      onChange={(e) => setFormData({ ...formData, scent_description: e.target.value })}
-                    />
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Basic Information</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Product Name *</Label>
+                      <Input id="name" placeholder="e.g. Lavender Dreams" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required className="h-10 rounded-lg" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="price">Price (KES) *</Label>
+                      <Input id="price" type="number" placeholder="1200" value={formData.price || ""} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} required className="h-10 rounded-lg" />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="burn_time">Burn Time (hours)</Label>
-                    <Input
-                      id="burn_time"
-                      type="number"
-                      placeholder="e.g. 40"
-                      value={formData.burn_time || ""}
-                      onChange={(e) => setFormData({ ...formData, burn_time: e.target.value ? Number(e.target.value) : undefined })}
-                    />
+                    <Label htmlFor="description">Description *</Label>
+                    <Textarea id="description" placeholder="Describe the candle..." rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} required className="resize-none rounded-lg" />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="care_instructions">Care Instructions (comma-separated)</Label>
-                    <Textarea
-                      id="care_instructions"
-                      placeholder="e.g. Keep away from drafts, Trim wick to 1/4 inch"
-                      rows={2}
-                      value={formData.care_instructions?.join(", ") || ""}
-                      onChange={(e) => setFormData({ ...formData, care_instructions: e.target.value ? e.target.value.split(",").map(s => s.trim()) : [] })}
-                    />
+                </div>
+
+                {/* Categories & Inventory Section */}
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Categorization & Inventory</h3>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="scent">Scent *</Label>
+                      <Select value={formData.scent} onValueChange={(value) => setFormData({ ...formData, scent: value })}>
+                        <SelectTrigger className="h-10 rounded-lg"><SelectValue placeholder="Select scent" /></SelectTrigger>
+                        <SelectContent>{scents.map((scent) => (<SelectItem key={scent} value={scent}>{scent}</SelectItem>))}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="size">Size *</Label>
+                      <Select value={formData.size} onValueChange={(value) => setFormData({ ...formData, size: value })}>
+                        <SelectTrigger className="h-10 rounded-lg"><SelectValue placeholder="Select size" /></SelectTrigger>
+                        <SelectContent>{sizes.map((size) => (<SelectItem key={size} value={size}>{size}</SelectItem>))}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="stock">Stock *</Label>
+                      <Input id="stock" type="number" placeholder="15" value={formData.stock || ""} onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })} required className="h-10 rounded-lg" />
+                    </div>
                   </div>
+                </div>
+
+                {/* Media Section */}
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Product Media</h3>
+                  
                   <div className="space-y-2">
-                    <Label htmlFor="ingredients">Ingredients (comma-separated)</Label>
-                    <Textarea
-                      id="ingredients"
-                      placeholder="e.g. Soy wax, Essential oils, Cotton wick"
-                      rows={2}
-                      value={formData.ingredients?.join(", ") || ""}
-                      onChange={(e) => setFormData({ ...formData, ingredients: e.target.value ? e.target.value.split(",").map(s => s.trim()) : [] })}
-                    />
+                    <Label>Main Product Image *</Label>
+                    <div className="relative border-2 border-dashed border-muted-foreground/20 rounded-xl p-8 flex flex-col items-center justify-center text-center bg-muted/5 hover:bg-muted/30 transition-colors cursor-pointer group">
+                      <input id="image" type="file" accept="image/*" onChange={handleMainImageChange} required className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                      <div className="p-3 bg-primary/10 rounded-full mb-3 text-primary group-hover:scale-110 transition-transform">
+                        <Upload className="h-6 w-6" />
+                      </div>
+                      <p className="font-medium text-sm">Click to browse or drag and drop</p>
+                      <p className="text-xs text-muted-foreground mt-1">PNG, JPG or WEBP (max. 5MB)</p>
+                    </div>
+                    {mainImagePreview && (
+                      <div className="relative w-24 h-24 mt-3 rounded-lg overflow-hidden border shadow-sm">
+                        <Image src={mainImagePreview} alt="Main image preview" fill className="object-cover" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Additional Images (Optional, max 2)</Label>
+                    <div className="relative border-2 border-dashed border-muted-foreground/20 rounded-xl p-6 flex flex-col items-center justify-center text-center bg-muted/5 hover:bg-muted/30 transition-colors cursor-pointer group">
+                      <input id="additional_images" type="file" accept="image/*" multiple onChange={handleAdditionalImagesChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                      <div className="p-2 bg-muted rounded-full mb-2 text-muted-foreground group-hover:scale-110 transition-transform">
+                        <Upload className="h-4 w-4" />
+                      </div>
+                      <p className="font-medium text-sm">Upload additional angles</p>
+                    </div>
+                    {additionalImagePreviews.length > 0 && (
+                      <div className="flex gap-3 mt-3">
+                        {additionalImagePreviews.map((preview, index) => (
+                          <div key={index} className="relative w-20 h-20 rounded-lg overflow-hidden border shadow-sm group">
+                            <Image src={preview} alt={`Additional image ${index + 1}`} fill className="object-cover" />
+                            <button type="button" onClick={() => removeAdditionalImage(index)} className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Warning about image permanence */}
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-sm">
+                    <div className="flex gap-3">
+                      <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
+                      <div className="text-sm text-amber-800">
+                        <p className="font-medium mb-1">Choose images carefully</p>
+                        <p className="text-amber-700/90 leading-relaxed">Images cannot be removed after creation, only replaced. Make sure to select the correct files before submitting.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Optional Details Section */}
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Optional Details</h3>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="scent_description">Scent Description</Label>
+                      <Textarea id="scent_description" placeholder="Describe the scent profile..." rows={2} value={formData.scent_description || ""} onChange={(e) => setFormData({ ...formData, scent_description: e.target.value })} className="rounded-lg" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="burn_time">Burn Time (hours)</Label>
+                      <Input id="burn_time" type="number" placeholder="e.g. 40" value={formData.burn_time || ""} onChange={(e) => setFormData({ ...formData, burn_time: e.target.value ? Number(e.target.value) : undefined })} className="h-10 rounded-lg" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="care_instructions">Care Instructions (comma-separated)</Label>
+                      <Textarea id="care_instructions" placeholder="e.g. Keep away from drafts, Trim wick to 1/4 inch" rows={2} value={formData.care_instructions?.join(", ") || ""} onChange={(e) => setFormData({ ...formData, care_instructions: e.target.value ? e.target.value.split(",").map(s => s.trim()) : [] })} className="rounded-lg" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="ingredients">Ingredients (comma-separated)</Label>
+                      <Textarea id="ingredients" placeholder="e.g. Soy wax, Essential oils, Cotton wick" rows={2} value={formData.ingredients?.join(", ") || ""} onChange={(e) => setFormData({ ...formData, ingredients: e.target.value ? e.target.value.split(",").map(s => s.trim()) : [] })} className="rounded-lg" />
+                    </div>
                   </div>
                 </div>
 
                 {/* Bundle Offer Section */}
-                <div className="border-t pt-4 mt-4">
-                  <h4 className="text-sm font-medium mb-3">Bundle Offer (Optional)</h4>
-                  <div className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="bundle_quantity">Quantity</Label>
-                        <Input
-                          id="bundle_quantity"
-                          type="number"
-                          placeholder="e.g. 2"
-                          value={formData.bundle_offer?.quantity || ""}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            bundle_offer: e.target.value ? {
-                              quantity: Number(e.target.value),
-                              discount: formData.bundle_offer?.discount || 0,
-                              description: formData.bundle_offer?.description || ""
-                            } : undefined
-                          })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="bundle_discount">Discount (%)</Label>
-                        <Input
-                          id="bundle_discount"
-                          type="number"
-                          placeholder="e.g. 10"
-                          value={formData.bundle_offer?.discount || ""}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            bundle_offer: formData.bundle_offer ? {
-                              ...formData.bundle_offer,
-                              discount: Number(e.target.value)
-                            } : undefined
-                          })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="bundle_description">Description</Label>
-                        <Input
-                          id="bundle_description"
-                          placeholder="e.g. Buy 2, get 10% off"
-                          value={formData.bundle_offer?.description || ""}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            bundle_offer: formData.bundle_offer ? {
-                              ...formData.bundle_offer,
-                              description: e.target.value
-                            } : undefined
-                          })}
-                        />
-                      </div>
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Bundle Offer</h3>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="bundle_quantity">Quantity</Label>
+                      <Input id="bundle_quantity" type="number" placeholder="e.g. 2" value={formData.bundle_offer?.quantity || ""} onChange={(e) => setFormData({ ...formData, bundle_offer: e.target.value ? { quantity: Number(e.target.value), discount: formData.bundle_offer?.discount || 0, description: formData.bundle_offer?.description || "" } : undefined })} className="h-10 rounded-lg" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bundle_discount">Discount (%)</Label>
+                      <Input id="bundle_discount" type="number" placeholder="e.g. 10" value={formData.bundle_offer?.discount || ""} onChange={(e) => setFormData({ ...formData, bundle_offer: formData.bundle_offer ? { ...formData.bundle_offer, discount: Number(e.target.value) } : undefined })} className="h-10 rounded-lg" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bundle_description">Description</Label>
+                      <Input id="bundle_description" placeholder="e.g. Buy 2, get 10% off" value={formData.bundle_offer?.description || ""} onChange={(e) => setFormData({ ...formData, bundle_offer: formData.bundle_offer ? { ...formData.bundle_offer, description: e.target.value } : undefined })} className="h-10 rounded-lg" />
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>
+              <div className="px-6 py-4 border-t bg-muted/10 flex justify-end gap-3 shrink-0">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting} className="rounded-lg px-6">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" disabled={isSubmitting} className="rounded-lg px-6 bg-[#F26419] hover:bg-[#F26419]/90 text-white">
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Add Product
+                  Create Product
                 </Button>
               </div>
             </form>
@@ -613,20 +522,19 @@ export default function AdminProductsPage() {
 
       {/* Tabs and Secondary Filters */}
       <div className="mb-8 flex flex-col gap-6">
-        {/* Tabs Row */}
-        <div className="flex items-center justify-between border-b pb-0">
+        <div className="flex items-center justify-between">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="bg-transparent h-auto p-0 gap-8">
-              <TabsTrigger value="all" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-[#F26419] rounded-none px-1 py-3 font-medium text-sm text-muted-foreground data-[state=active]:text-foreground">
+            <TabsList className="bg-muted/50 p-1 rounded-lg h-auto gap-1">
+              <TabsTrigger value="all" className="rounded-md px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground">
                 All
               </TabsTrigger>
-              <TabsTrigger value="in_stock" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-[#F26419] rounded-none px-1 py-3 font-medium text-sm text-muted-foreground data-[state=active]:text-foreground">
+              <TabsTrigger value="in_stock" className="rounded-md px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground">
                 In Stock
               </TabsTrigger>
-              <TabsTrigger value="low_stock" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-[#F26419] rounded-none px-1 py-3 font-medium text-sm text-muted-foreground data-[state=active]:text-foreground">
+              <TabsTrigger value="low_stock" className="rounded-md px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground">
                 Low Stock
               </TabsTrigger>
-              <TabsTrigger value="out_of_stock" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-[#F26419] rounded-none px-1 py-3 font-medium text-sm text-muted-foreground data-[state=active]:text-foreground">
+              <TabsTrigger value="out_of_stock" className="rounded-md px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground">
                 Out of Stock
               </TabsTrigger>
             </TabsList>
@@ -809,242 +717,157 @@ export default function AdminProductsPage() {
 
       {/* Edit Sheet */}
       <Sheet open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <SheetContent className="sm:max-w-xl overflow-y-auto w-full">
-          <SheetHeader className="mb-6">
-            <SheetTitle>Edit Product</SheetTitle>
-            <SheetDescription>Update product details</SheetDescription>
-          </SheetHeader>
-          <form onSubmit={handleEditProduct} className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="edit-name">Product Name *</Label>
-                <Input
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-price">Price (KES) *</Label>
-                <Input
-                  id="edit-price"
-                  type="number"
-                  value={formData.price || ""}
-                  onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                  required
-                />
-              </div>
+          <SheetContent className="sm:max-w-xl w-full flex flex-col p-0 border-l">
+            <div className="px-6 py-5 border-b bg-muted/10">
+              <SheetHeader>
+                <SheetTitle className="text-xl font-semibold">Edit Product</SheetTitle>
+                <SheetDescription>Update product details</SheetDescription>
+              </SheetHeader>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">Description *</Label>
-              <Textarea
-                id="edit-description"
-                rows={3}
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                required
-              />
-            </div>
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2">
-                <Label>Scent *</Label>
-                <Select value={formData.scent} onValueChange={(value) => setFormData({ ...formData, scent: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {scents.map((scent) => (
-                      <SelectItem key={scent} value={scent}>
-                        {scent}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Size *</Label>
-                <Select value={formData.size} onValueChange={(value) => setFormData({ ...formData, size: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sizes.map((size) => (
-                      <SelectItem key={size} value={size}>
-                        {size}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-stock">Stock *</Label>
-                <Input
-                  id="edit-stock"
-                  type="number"
-                  value={formData.stock || ""}
-                  onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-image">Main Product Image</Label>
-              <Input
-                id="edit-image"
-                type="file"
-                accept="image/*"
-                onChange={handleMainImageChange}
-              />
-              <p className="text-xs text-muted-foreground">Leave empty to keep existing image</p>
-              {mainImagePreview && (
-                <div className="relative w-full h-48 mt-2 rounded-lg overflow-hidden bg-muted">
-                  <Image src={mainImagePreview} alt="Main image preview" fill className="object-cover" />
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-additional_images">Additional Images (Optional, max 2)</Label>
-              <Input
-                id="edit-additional_images"
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleAdditionalImagesChange}
-              />
-              <p className="text-xs text-muted-foreground">Upload new images to replace existing ones</p>
-              {additionalImagePreviews.length > 0 && (
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  {additionalImagePreviews.map((preview, index) => (
-                    <div key={index} className="relative w-full h-32 rounded-lg overflow-hidden bg-muted">
-                      <Image src={preview} alt={`Additional image ${index + 1}`} fill className="object-cover" />
+            
+            <form onSubmit={handleEditProduct} className="flex flex-col flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                {/* Basic Info Section */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Basic Information</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-name">Product Name *</Label>
+                      <Input id="edit-name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required className="h-10 rounded-lg" />
                     </div>
-                  ))}
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-price">Price (KES) *</Label>
+                      <Input id="edit-price" type="number" value={formData.price || ""} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} required className="h-10 rounded-lg" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-description">Description *</Label>
+                    <Textarea id="edit-description" rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} required className="resize-none rounded-lg" />
+                  </div>
                 </div>
-              )}
-            </div>
 
-            {/* Optional Fields */}
-            <div className="border-t pt-4 mt-4">
-              <h4 className="text-sm font-medium mb-3">Optional Details</h4>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-scent_description">Scent Description</Label>
-                  <Textarea
-                    id="edit-scent_description"
-                    placeholder="Describe the scent profile..."
-                    rows={2}
-                    value={formData.scent_description || ""}
-                    onChange={(e) => setFormData({ ...formData, scent_description: e.target.value })}
-                  />
+                {/* Categories & Inventory Section */}
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Categorization & Inventory</h3>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label>Scent *</Label>
+                      <Select value={formData.scent} onValueChange={(value) => setFormData({ ...formData, scent: value })}>
+                        <SelectTrigger className="h-10 rounded-lg"><SelectValue /></SelectTrigger>
+                        <SelectContent>{scents.map((scent) => (<SelectItem key={scent} value={scent}>{scent}</SelectItem>))}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Size *</Label>
+                      <Select value={formData.size} onValueChange={(value) => setFormData({ ...formData, size: value })}>
+                        <SelectTrigger className="h-10 rounded-lg"><SelectValue /></SelectTrigger>
+                        <SelectContent>{sizes.map((size) => (<SelectItem key={size} value={size}>{size}</SelectItem>))}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-stock">Stock *</Label>
+                      <Input id="edit-stock" type="number" value={formData.stock || ""} onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })} required className="h-10 rounded-lg" />
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-burn_time">Burn Time (hours)</Label>
-                  <Input
-                    id="edit-burn_time"
-                    type="number"
-                    placeholder="e.g. 40"
-                    value={formData.burn_time || ""}
-                    onChange={(e) => setFormData({ ...formData, burn_time: e.target.value ? Number(e.target.value) : undefined })}
-                  />
+
+                {/* Media Section */}
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Product Media</h3>
+                  
+                  <div className="space-y-2">
+                    <Label>Main Product Image</Label>
+                    <div className="relative border-2 border-dashed border-muted-foreground/20 rounded-xl p-8 flex flex-col items-center justify-center text-center bg-muted/5 hover:bg-muted/30 transition-colors cursor-pointer group">
+                      <input id="edit-image" type="file" accept="image/*" onChange={handleMainImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                      <div className="p-3 bg-primary/10 rounded-full mb-3 text-primary group-hover:scale-110 transition-transform">
+                        <Upload className="h-6 w-6" />
+                      </div>
+                      <p className="font-medium text-sm">Click to browse or drag and drop</p>
+                      <p className="text-xs text-muted-foreground mt-1">Leave empty to keep existing image</p>
+                    </div>
+                    {mainImagePreview && (
+                      <div className="relative w-24 h-24 mt-3 rounded-lg overflow-hidden border shadow-sm">
+                        <Image src={mainImagePreview} alt="Main image preview" fill className="object-cover" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Additional Images (Optional, max 2)</Label>
+                    <div className="relative border-2 border-dashed border-muted-foreground/20 rounded-xl p-6 flex flex-col items-center justify-center text-center bg-muted/5 hover:bg-muted/30 transition-colors cursor-pointer group">
+                      <input id="edit-additional_images" type="file" accept="image/*" multiple onChange={handleAdditionalImagesChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                      <div className="p-2 bg-muted rounded-full mb-2 text-muted-foreground group-hover:scale-110 transition-transform">
+                        <Upload className="h-4 w-4" />
+                      </div>
+                      <p className="font-medium text-sm">Upload new images</p>
+                      <p className="text-xs text-muted-foreground mt-1">Leave empty to keep existing images</p>
+                    </div>
+                    {additionalImagePreviews.length > 0 && (
+                      <div className="flex gap-3 mt-3">
+                        {additionalImagePreviews.map((preview, index) => (
+                          <div key={index} className="relative w-20 h-20 rounded-lg overflow-hidden border shadow-sm">
+                            <Image src={preview} alt={`Additional image ${index + 1}`} fill className="object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-care_instructions">Care Instructions (comma-separated)</Label>
-                  <Textarea
-                    id="edit-care_instructions"
-                    placeholder="e.g. Keep away from drafts, Trim wick to 1/4 inch"
-                    rows={2}
-                    value={formData.care_instructions?.join(", ") || ""}
-                    onChange={(e) => setFormData({ ...formData, care_instructions: e.target.value ? e.target.value.split(",").map(s => s.trim()) : [] })}
-                  />
+
+                {/* Optional Details Section */}
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Optional Details</h3>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-scent_description">Scent Description</Label>
+                      <Textarea id="edit-scent_description" placeholder="Describe the scent profile..." rows={2} value={formData.scent_description || ""} onChange={(e) => setFormData({ ...formData, scent_description: e.target.value })} className="rounded-lg" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-burn_time">Burn Time (hours)</Label>
+                      <Input id="edit-burn_time" type="number" placeholder="e.g. 40" value={formData.burn_time || ""} onChange={(e) => setFormData({ ...formData, burn_time: e.target.value ? Number(e.target.value) : undefined })} className="h-10 rounded-lg" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-care_instructions">Care Instructions (comma-separated)</Label>
+                      <Textarea id="edit-care_instructions" placeholder="e.g. Keep away from drafts, Trim wick to 1/4 inch" rows={2} value={formData.care_instructions?.join(", ") || ""} onChange={(e) => setFormData({ ...formData, care_instructions: e.target.value ? e.target.value.split(",").map(s => s.trim()) : [] })} className="rounded-lg" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-ingredients">Ingredients (comma-separated)</Label>
+                      <Textarea id="edit-ingredients" placeholder="e.g. Soy wax, Essential oils, Cotton wick" rows={2} value={formData.ingredients?.join(", ") || ""} onChange={(e) => setFormData({ ...formData, ingredients: e.target.value ? e.target.value.split(",").map(s => s.trim()) : [] })} className="rounded-lg" />
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-ingredients">Ingredients (comma-separated)</Label>
-                  <Textarea
-                    id="edit-ingredients"
-                    placeholder="e.g. Soy wax, Essential oils, Cotton wick"
-                    rows={2}
-                    value={formData.ingredients?.join(", ") || ""}
-                    onChange={(e) => setFormData({ ...formData, ingredients: e.target.value ? e.target.value.split(",").map(s => s.trim()) : [] })}
-                  />
+
+                {/* Bundle Offer Section */}
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Bundle Offer</h3>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-bundle_quantity">Quantity</Label>
+                      <Input id="edit-bundle_quantity" type="number" placeholder="e.g. 2" value={formData.bundle_offer?.quantity || ""} onChange={(e) => setFormData({ ...formData, bundle_offer: e.target.value ? { quantity: Number(e.target.value), discount: formData.bundle_offer?.discount || 0, description: formData.bundle_offer?.description || "" } : undefined })} className="h-10 rounded-lg" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-bundle_discount">Discount (%)</Label>
+                      <Input id="edit-bundle_discount" type="number" placeholder="e.g. 10" value={formData.bundle_offer?.discount || ""} onChange={(e) => setFormData({ ...formData, bundle_offer: formData.bundle_offer ? { ...formData.bundle_offer, discount: Number(e.target.value) } : undefined })} className="h-10 rounded-lg" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-bundle_description">Description</Label>
+                      <Input id="edit-bundle_description" placeholder="e.g. Buy 2, get 10% off" value={formData.bundle_offer?.description || ""} onChange={(e) => setFormData({ ...formData, bundle_offer: formData.bundle_offer ? { ...formData.bundle_offer, description: e.target.value } : undefined })} className="h-10 rounded-lg" />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Bundle Offer Section */}
-            <div className="border-t pt-4 mt-4">
-              <h4 className="text-sm font-medium mb-3">Bundle Offer (Optional)</h4>
-              <div className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-bundle_quantity">Quantity</Label>
-                    <Input
-                      id="edit-bundle_quantity"
-                      type="number"
-                      placeholder="e.g. 2"
-                      value={formData.bundle_offer?.quantity || ""}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        bundle_offer: e.target.value ? {
-                          quantity: Number(e.target.value),
-                          discount: formData.bundle_offer?.discount || 0,
-                          description: formData.bundle_offer?.description || ""
-                        } : undefined
-                      })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-bundle_discount">Discount (%)</Label>
-                    <Input
-                      id="edit-bundle_discount"
-                      type="number"
-                      placeholder="e.g. 10"
-                      value={formData.bundle_offer?.discount || ""}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        bundle_offer: formData.bundle_offer ? {
-                          ...formData.bundle_offer,
-                          discount: Number(e.target.value)
-                        } : undefined
-                      })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-bundle_description">Description</Label>
-                    <Input
-                      id="edit-bundle_description"
-                      placeholder="e.g. Buy 2, get 10% off"
-                      value={formData.bundle_offer?.description || ""}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        bundle_offer: formData.bundle_offer ? {
-                          ...formData.bundle_offer,
-                          description: e.target.value
-                        } : undefined
-                      })}
-                    />
-                  </div>
-                </div>
+              <div className="px-6 py-4 border-t bg-muted/10 flex justify-end gap-3 shrink-0">
+                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={isSubmitting} className="rounded-lg px-6">
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting} className="rounded-lg px-6 bg-[#F26419] hover:bg-[#F26419]/90 text-white">
+                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Update Product
+                </Button>
               </div>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsEditDialogOpen(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Update Product
-              </Button>
-            </div>
-          </form>
-        </SheetContent>
+            </form>
+          </SheetContent>
       </Sheet>
 
       {/* Delete Dialog */}
@@ -1068,25 +891,22 @@ export default function AdminProductsPage() {
 
       {/* View Product Sheet */}
       <Sheet open={viewProduct !== null} onOpenChange={(open) => !open && setViewProduct(null)}>
-        <SheetContent className="sm:max-w-md overflow-y-auto">
+        <SheetContent className="sm:max-w-md w-full flex flex-col p-0 border-l">
           {viewProduct && (
             <>
-              <SheetHeader className="mb-6">
-                <SheetTitle className="text-xl">Product Details</SheetTitle>
-                <SheetDescription>View all information about this product.</SheetDescription>
-              </SheetHeader>
+              <div className="px-6 py-5 border-b bg-muted/10 shrink-0">
+                <SheetHeader>
+                  <SheetTitle className="text-xl font-semibold">Product Details</SheetTitle>
+                  <SheetDescription>View all information about this product.</SheetDescription>
+                </SheetHeader>
+              </div>
               
-              <div className="space-y-6">
+              <div className="flex-1 overflow-y-auto p-6 space-y-8">
                 {/* Image Section */}
                 <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-muted border">
-                  <Image 
-                    src={viewProduct.image || "/placeholder.svg"} 
-                    alt={viewProduct.name} 
-                    fill 
-                    className="object-cover" 
-                  />
+                  <Image src={viewProduct.image || "/placeholder.svg"} alt={viewProduct.name} fill className="object-cover" />
                   <div className="absolute top-3 right-3">
-                    <Badge variant={viewProduct.stock > 0 ? "secondary" : "destructive"} className="shadow-sm">
+                    <Badge variant={viewProduct.stock > 0 ? "secondary" : "destructive"} className="shadow-sm border-0">
                       {viewProduct.stock > 0 ? 'Active' : 'Out of Stock'}
                     </Badge>
                   </div>
@@ -1094,88 +914,79 @@ export default function AdminProductsPage() {
 
                 {/* Main Details */}
                 <div>
-                  <h2 className="text-2xl font-semibold mb-1">{viewProduct.name}</h2>
-                  <p className="text-sm text-muted-foreground mb-4">SKU: {viewProduct.id}</p>
+                  <div className="flex justify-between items-start mb-2">
+                    <h2 className="text-2xl font-bold">{viewProduct.name}</h2>
+                  </div>
+                  <p className="text-sm font-medium text-muted-foreground mb-6 uppercase tracking-wider">SKU: {viewProduct.id.substring(0, 8)}...</p>
                   
-                  <div className="flex items-center justify-between border-y py-4 mb-4">
+                  <div className="flex items-center justify-between border-y py-4 mb-4 bg-muted/5 -mx-6 px-6">
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Retail Price</p>
-                      <p className="text-lg font-bold">KES {viewProduct.price.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground mb-1 font-medium">Retail Price</p>
+                      <p className="text-xl font-bold text-[#F26419]">KES {viewProduct.price.toLocaleString()}</p>
                     </div>
                     {viewProduct.bundle_offer && (
                       <div className="text-right">
-                        <p className="text-sm text-muted-foreground mb-1">Wholesale (Bundle)</p>
-                        <p className="text-lg font-bold">
+                        <p className="text-sm text-muted-foreground mb-1 font-medium">Wholesale (Bundle)</p>
+                        <p className="text-xl font-bold text-[#F26419]">
                           KES {Math.round(viewProduct.price * (1 - viewProduct.bundle_offer.discount / 100)).toLocaleString()}
                         </p>
                       </div>
                     )}
                   </div>
                   
-                  <p className="text-sm leading-relaxed">{viewProduct.description}</p>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{viewProduct.description}</p>
                 </div>
 
                 {/* Categorization & Inventory */}
-                <div className="grid grid-cols-2 gap-4 bg-muted/30 p-4 rounded-xl border">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Category</p>
-                    <p className="text-sm font-medium capitalize">{viewProduct.scent}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Type/Size</p>
-                    <p className="text-sm font-medium capitalize">{viewProduct.size}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Inventory</p>
-                    <p className={`text-sm font-medium ${viewProduct.stock < 10 ? 'text-red-600' : 'text-foreground'}`}>
-                      {viewProduct.stock} units
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Added</p>
-                    <p className="text-sm font-medium">
-                      {new Date(viewProduct.created_at).toLocaleDateString()}
-                    </p>
+                <div>
+                  <h3 className="text-sm font-semibold mb-4 uppercase tracking-wider text-muted-foreground">Product Stats</h3>
+                  <div className="grid grid-cols-2 gap-4 bg-muted/20 p-5 rounded-xl border">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Category</p>
+                      <p className="text-sm font-medium capitalize">{viewProduct.scent}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Type/Size</p>
+                      <p className="text-sm font-medium capitalize">{viewProduct.size}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Inventory</p>
+                      <p className={`text-sm font-medium ${viewProduct.stock < 10 ? 'text-red-600' : 'text-foreground'}`}>
+                        {viewProduct.stock} units
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Added</p>
+                      <p className="text-sm font-medium">
+                        {new Date(viewProduct.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
                 {/* Additional Images (if any exist) */}
                 {viewProduct.images && viewProduct.images.length > 0 && (
                   <div>
-                    <h3 className="font-semibold mb-3">Additional Images</h3>
-                    <div className="flex gap-3 overflow-x-auto pb-2">
+                    <h3 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Additional Images</h3>
+                    <div className="flex gap-3 overflow-x-auto pb-2 -mx-6 px-6">
                       {viewProduct.images.map((img: string, i: number) => (
-                        <div key={i} className="relative h-24 w-24 rounded-lg overflow-hidden border flex-shrink-0">
+                        <div key={i} className="relative h-28 w-28 rounded-lg overflow-hidden border flex-shrink-0 shadow-sm">
                           <Image src={img} alt={`${viewProduct.name} ${i+1}`} fill className="object-cover" />
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
+              </div>
                 
-                {/* Action Buttons */}
-                <div className="flex gap-3 pt-4 border-t">
-                  <Button 
-                    className="flex-1" 
-                    variant="outline" 
-                    onClick={() => {
-                      setViewProduct(null)
-                      openEditDialog(viewProduct)
-                    }}
-                  >
-                    <Edit className="h-4 w-4 mr-2" /> Edit
-                  </Button>
-                  <Button 
-                    className="flex-1 text-destructive border-destructive hover:bg-destructive/10" 
-                    variant="outline"
-                    onClick={() => {
-                      setViewProduct(null)
-                      openDeleteDialog(viewProduct)
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" /> Delete
-                  </Button>
-                </div>
+              {/* Action Buttons */}
+              <div className="px-6 py-4 border-t bg-muted/10 flex gap-3 shrink-0">
+                <Button className="flex-1 rounded-lg" variant="outline" onClick={() => { setViewProduct(null); openEditDialog(viewProduct); }}>
+                  <Edit className="h-4 w-4 mr-2" /> Edit
+                </Button>
+                <Button className="flex-1 rounded-lg text-destructive border-destructive hover:bg-destructive/10" variant="outline" onClick={() => { setViewProduct(null); openDeleteDialog(viewProduct); }}>
+                  <Trash2 className="h-4 w-4 mr-2" /> Delete
+                </Button>
               </div>
             </>
           )}
