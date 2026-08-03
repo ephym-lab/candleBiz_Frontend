@@ -267,7 +267,7 @@ export default function AdminOrdersPage() {
               <TabsTrigger 
                 key={tab.id}
                 value={tab.id} 
-                className="bg-transparent px-0 py-2 border-b-2 border-transparent rounded-none data-[state=active]:bg-transparent data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:text-foreground text-muted-foreground transition-all"
+                className="bg-transparent px-0 py-2 border-0 border-b-2 border-transparent rounded-none data-[state=active]:bg-transparent data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:text-foreground text-muted-foreground transition-all"
               >
                 {tab.label}
               </TabsTrigger>
