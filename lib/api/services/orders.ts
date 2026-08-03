@@ -67,9 +67,10 @@ export async function getOrder(id: string) {
 /**
  * Track order
  */
-export async function trackOrder(id: string) {
+export async function trackOrder(id: string, email: string) {
+    const params = new URLSearchParams({ email })
     const response = await apiClient.get<ApiResponse<Order>>(
-        API_ENDPOINTS.ORDER_TRACK(id)
+        `${API_ENDPOINTS.ORDER_TRACK(id)}?${params.toString()}`
     )
     return response.data
 }
