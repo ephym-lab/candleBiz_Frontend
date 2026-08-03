@@ -18,13 +18,23 @@ import { Eye, Package2, Loader2, AlertCircle, Search, X } from "lucide-react"
 import { toast } from "sonner"
 import type { Order } from "@/lib/api/types"
 import { getOrders, updateOrderStatus } from "@/lib/api/services/orders"
+import { useSearchParams } from "next/navigation"
 
 export default function AdminOrdersPage() {
+  const searchParams = useSearchParams()
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "")
   const [selectedStatus, setSelectedStatus] = useState<string>("all")
+  
+  // Sync state with URL if it changes (e.g. clicking a notification while on this page)
+  useEffect(() => {
+    const q = searchParams.get("q")
+    if (q !== null) {
+      setSearchQuery(q)
+    }
+  }, [searchParams])
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
   const [newStatus, setNewStatus] = useState<Order["status"]>("pending")
@@ -58,8 +68,17 @@ export default function AdminOrdersPage() {
   }, [searchQuery])
 
   // Filter orders
-  const filteredOrders =
-    selectedStatus === "all" ? orders : orders.filter((order) => order.status === selectedStatus)
+  const filteredOrders = orders.filter((order) => {
+    const matchesStatus = selectedStatus === "all" || order.status === selectedStatus
+    const query = searchQuery.trim().toLowerCase()
+    const matchesSearch = !query || 
+      order.id.toLowerCase().includes(query) ||
+      order.customerName.toLowerCase().includes(query) ||
+      order.email.toLowerCase().includes(query) ||
+      order.phone.includes(query)
+      
+    return matchesStatus && matchesSearch
+  })
 
   // Handle status update
   const handleStatusUpdate = async () => {

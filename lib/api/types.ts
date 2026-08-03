@@ -206,6 +206,56 @@ export interface ProductFilters {
     limit?: number
 }
 
+// Notification Types
+export type NotificationType =
+    | 'order_created'
+    | 'order_updated'
+    | 'order_cancelled'
+    | 'low_stock'
+    | 'new_review'
+    | 'newsletter_signup'
+    | string
+
+export type NotificationPriority = 'low' | 'medium' | 'high'
+
+export interface Notification {
+    id: string
+    title: string
+    message: string
+    notification_type: NotificationType
+    priority: NotificationPriority
+    related_entity?: string | null
+    related_id?: string | null
+    is_read: boolean
+    read_at: string | null
+    created_at: string
+    updated_at: string
+}
+
+export interface NotificationMeta {
+    total: number
+    skip: number
+    limit: number
+}
+
+export interface NotificationListResponse {
+    success: boolean
+    data: Notification[]
+    meta: NotificationMeta
+}
+
+export interface MarkReadResponse {
+    success: boolean
+    message: string
+    data: Notification
+}
+
+export interface MarkAllReadResponse {
+    success: boolean
+    message: string
+    data: { count: number }
+}
+
 // Error Types
 export interface ApiError {
     success: false

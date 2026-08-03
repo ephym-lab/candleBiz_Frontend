@@ -31,15 +31,25 @@ import Image from "next/image"
 import { toast } from "sonner"
 import type { Product, UpdateProductRequest } from "@/lib/api/types"
 import { getProducts, createProduct, updateProduct, deleteProduct, updateStock, searchProducts } from "@/lib/api/services/products"
+import { useSearchParams } from "next/navigation"
 
 const scents = ["lavender", "vanilla", "citrus", "eucalyptus", "rose", "sandalwood", "jasmine", "cinnamon"]
 const sizes = ["small", "medium", "large"]
 
 export default function AdminProductsPage() {
+  const searchParams = useSearchParams()
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "")
+  
+  // Sync state with URL if it changes (e.g. clicking a notification while on this page)
+  useEffect(() => {
+    const q = searchParams.get("q")
+    if (q !== null) {
+      setSearchQuery(q)
+    }
+  }, [searchParams])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)

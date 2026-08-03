@@ -4,7 +4,7 @@
  */
 
 export const API_CONFIG = {
-    BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/v1',
+    BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/v1',
     TIMEOUT: 30000, // 30 seconds
 } as const
 
@@ -42,4 +42,9 @@ export const API_ENDPOINTS = {
     NEWSLETTER_SUBSCRIBE: '/newsletter/subscribe',
     NEWSLETTER_UNSUBSCRIBE: '/newsletter/unsubscribe',
     NEWSLETTER_BROADCAST: '/newsletter/admin/broadcast',
+
+    // Notifications
+    NOTIFICATIONS: '/notifications',
+    NOTIFICATIONS_READ_ALL: '/notifications/read-all',
+    NOTIFICATION_MARK_READ: (id: string) => `/notifications/${id}/read`,
 } as const

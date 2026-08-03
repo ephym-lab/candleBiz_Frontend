@@ -7,7 +7,8 @@ import { useRouter, usePathname } from "next/navigation"
 import { useAdmin } from "@/lib/admin-context"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Package, ShoppingCart, BarChart3, LogOut, Star } from "lucide-react"
+import { Package, ShoppingCart, BarChart3, LogOut, Star, Bell } from "lucide-react"
+import { NotificationBell } from "@/components/admin/notification-bell"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, logout } = useAdmin()
@@ -70,9 +71,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <Star className="h-4 w-4" />
                 Reviews
               </Link>
+              <Link
+                href="/admin/notifications"
+                className={`flex items-center gap-2 text-sm hover:text-primary transition-colors ${pathname === "/admin/notifications" ? "text-primary font-medium" : "text-muted-foreground"}`}
+              >
+                <Bell className="h-4 w-4" />
+                Notifications
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-4">
+            <NotificationBell />
             <Button asChild variant="ghost" size="sm">
               <Link href="/">View Store</Link>
             </Button>
