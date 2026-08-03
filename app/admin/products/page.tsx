@@ -25,8 +25,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Trash2, Plus, Loader2, AlertCircle, Search, X } from "lucide-react"
+import { Edit, Trash2, Plus, Loader2, AlertCircle, Search, X, MoreHorizontal, LayoutGrid, List as ListIcon, Filter, ChevronRight, Settings2 } from "lucide-react"
 import Image from "next/image"
 import { toast } from "sonner"
 import type { Product, UpdateProductRequest } from "@/lib/api/types"
@@ -42,6 +49,9 @@ export default function AdminProductsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "")
+  const [activeTab, setActiveTab] = useState("all")
+  const [selectedScent, setSelectedScent] = useState("all")
+  const [selectedSize, setSelectedSize] = useState("all")
   
   // Sync state with URL if it changes (e.g. clicking a notification while on this page)
   useEffect(() => {
@@ -291,6 +301,18 @@ export default function AdminProductsPage() {
     setIsDeleteDialogOpen(true)
   }
 
+  // Filter products based on tabs and secondary filters
+  const filteredProducts = products.filter((product) => {
+    if (activeTab === "in_stock" && product.stock === 0) return false
+    if (activeTab === "low_stock" && (product.stock >= 10 || product.stock === 0)) return false
+    if (activeTab === "out_of_stock" && product.stock > 0) return false
+    
+    if (selectedScent !== "all" && product.scent !== selectedScent) return false
+    if (selectedSize !== "all" && product.size !== selectedSize) return false
+    
+    return true
+  })
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -310,15 +332,17 @@ export default function AdminProductsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-serif font-bold">Products</h1>
-          <p className="text-muted-foreground">Manage your candle inventory</p>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Products</h1>
+          <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full" onClick={fetchProducts}>
+            <Loader2 className={`h-3 w-3 text-muted-foreground ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="bg-[#F26419] hover:bg-[#F26419]/90 text-white font-medium rounded-md">
               <Plus className="h-4 w-4 mr-2" />
               Add Product
             </Button>
@@ -578,54 +602,204 @@ export default function AdminProductsPage() {
         </Dialog>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder="Search products by name or description..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 pr-10"
-        />
-        {searchQuery && (
-          <button
-            onClick={() => setSearchQuery("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
+      {/* Tabs and Secondary Filters */}
+      <div className="bg-white rounded-xl border shadow-sm mb-6 flex flex-col">
+        {/* Tabs Row */}
+        <div className="flex items-center justify-between border-b px-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-md">
+            <TabsList className="bg-transparent h-auto p-0 gap-6">
+              <TabsTrigger value="all" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-[#F26419] rounded-none px-1 py-3 font-medium text-sm text-muted-foreground data-[state=active]:text-foreground">
+                All
+              </TabsTrigger>
+              <TabsTrigger value="in_stock" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-[#F26419] rounded-none px-1 py-3 font-medium text-sm text-muted-foreground data-[state=active]:text-foreground">
+                In Stock
+              </TabsTrigger>
+              <TabsTrigger value="low_stock" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-[#F26419] rounded-none px-1 py-3 font-medium text-sm text-muted-foreground data-[state=active]:text-foreground">
+                Low Stock
+              </TabsTrigger>
+              <TabsTrigger value="out_of_stock" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-[#F26419] rounded-none px-1 py-3 font-medium text-sm text-muted-foreground data-[state=active]:text-foreground">
+                Out of Stock
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
+          <div className="hidden sm:flex items-center gap-3 text-sm font-medium text-muted-foreground">
+            <Button variant="ghost" size="sm" className="h-8 gap-2 text-muted-foreground">
+              <Settings2 className="h-4 w-4" /> View Settings
+            </Button>
+          </div>
+        </div>
+        
+        {/* Filters Row */}
+        <div className="flex items-center justify-between p-3 gap-3 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap flex-1">
+            <div className="relative w-full max-w-xs">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9 bg-muted/30 border-muted/50 rounded-lg"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+
+            <Select value={selectedScent} onValueChange={setSelectedScent}>
+              <SelectTrigger className="h-9 w-[130px] bg-muted/30 border-muted/50 rounded-lg">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Scents</SelectItem>
+                {scents.map((s) => (
+                  <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedSize} onValueChange={setSelectedSize}>
+              <SelectTrigger className="h-9 w-[110px] bg-muted/30 border-muted/50 rounded-lg">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sizes</SelectItem>
+                {sizes.map((s) => (
+                  <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button variant="outline" size="sm" className="h-9 gap-2 rounded-lg border-muted/50">
+              Advance Filter <ChevronRight className="h-3 w-3 rotate-90" />
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-1 border rounded-lg p-0.5 bg-muted/20">
+            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md bg-white shadow-sm">
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-muted-foreground">
+              <ListIcon className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Products Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {products.map((product) => (
-          <Card key={product.id}>
-            <CardContent className="p-4">
-              <div className="aspect-square relative mb-4 rounded-lg overflow-hidden bg-muted">
-                <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold leading-tight">{product.name}</h3>
-                  <Badge variant={product.stock < 10 ? "destructive" : "secondary"}>{product.stock} in stock</Badge>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {filteredProducts.map((product) => (
+          <Card key={product.id} className="overflow-hidden border border-muted/60 shadow-sm hover:shadow-md transition-all duration-200 bg-white">
+            <CardContent className="p-0 flex flex-col h-full">
+              {/* Card Header Area */}
+              <div className="p-4 flex items-start gap-4">
+                <div className="relative h-14 w-14 rounded-md overflow-hidden bg-muted flex-shrink-0 border border-muted/30">
+                  <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
                 </div>
-                <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
-                <div className="flex items-center justify-between pt-2">
-                  <p className="text-lg font-bold">KES {product.price.toLocaleString()}</p>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => openEditDialog(product)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => openDeleteDialog(product)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-semibold text-[15px] leading-tight truncate text-foreground">{product.name}</h3>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 text-muted-foreground">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEditDialog(product)}>
+                          <Edit className="h-4 w-4 mr-2" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openDeleteDialog(product)} className="text-destructive focus:bg-destructive/10">
+                          <Trash2 className="h-4 w-4 mr-2" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[12px] text-muted-foreground">SKU {product.id.substring(0, 8).toUpperCase()}</span>
+                    {product.stock > 0 ? (
+                      <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-green-50 text-green-700 border-green-200 font-medium">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1" />
+                        Active
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-red-50 text-red-700 border-red-200 font-medium">
+                        Out of Stock
+                      </Badge>
+                    )}
                   </div>
                 </div>
-                <div className="flex gap-2 pt-1">
-                  <Badge variant="outline">{product.scent}</Badge>
-                  <Badge variant="outline">{product.size}</Badge>
+              </div>
+
+              {/* Badges Area */}
+              <div className="px-4 pb-4">
+                <div className="flex gap-1.5 flex-wrap">
+                  <Badge variant="secondary" className="h-6 rounded-md px-2 text-[11px] font-medium bg-muted/50 hover:bg-muted text-muted-foreground border-transparent capitalize">
+                    {product.scent}
+                  </Badge>
+                  <Badge variant="secondary" className="h-6 rounded-md px-2 text-[11px] font-medium bg-muted/50 hover:bg-muted text-muted-foreground border-transparent capitalize">
+                    {product.size}
+                  </Badge>
+                  <Badge variant="outline" className="h-6 rounded-md px-2 text-[11px] font-medium text-muted-foreground border-dashed">
+                    Candle
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Pricing Area */}
+              <div className="px-4 pb-4 grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[11px] text-muted-foreground mb-0.5">Retail</p>
+                  <p className="font-semibold text-[15px]">KES {product.price.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground mb-0.5">Wholesale</p>
+                  <p className="font-semibold text-[15px]">
+                    KES {product.bundle_offer?.discount 
+                      ? Math.round(product.price * (1 - product.bundle_offer.discount / 100)).toLocaleString() 
+                      : Math.round(product.price * 0.85).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-auto border-t border-muted/40 p-4 bg-muted/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[12px] font-medium ${product.stock < 10 ? 'text-red-600' : 'text-foreground'}`}>
+                          {product.stock} stock
+                        </span>
+                        <span className="text-muted-foreground text-[12px]">&middot;</span>
+                        <span className="text-[12px] text-muted-foreground">
+                          {product.stock === 0 ? "Empty" : product.stock < 10 ? "Low" : "High"}
+                        </span>
+                      </div>
+                      <div className="h-1 w-20 rounded-full bg-muted overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full ${product.stock === 0 ? 'bg-transparent' : product.stock < 10 ? 'bg-red-500' : 'bg-green-500'}`}
+                          style={{ width: `${Math.min(100, (product.stock / 50) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {product.stock === 0 ? (
+                    <Button size="sm" className="h-7 text-[11px] px-3 bg-[#111] hover:bg-black text-white rounded-md">
+                      Reorder
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="icon" className="h-7 w-7 rounded-md border-muted/60">
+                      <ChevronRight className="h-3 w-3" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -633,12 +807,16 @@ export default function AdminProductsPage() {
         ))}
       </div>
 
-      {products.length === 0 && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">No products found. Create your first product!</p>
-          </CardContent>
-        </Card>
+      {filteredProducts.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center px-6 rounded-xl border border-dashed bg-muted/10">
+          <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center">
+            <Search className="h-8 w-8 text-muted-foreground/40" />
+          </div>
+          <p className="text-base font-medium">No products found</p>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            Try adjusting your filters or create a new product to get started.
+          </p>
+        </div>
       )}
 
       {/* Edit Dialog */}

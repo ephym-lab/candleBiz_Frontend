@@ -79,11 +79,27 @@ export function NotificationBell() {
 
   const unreadCount = notifications.filter((n) => !n.is_read).length
 
+  const latestNotificationIdRef = useRef<string | null>(null)
+
   const fetchNotifications = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true)
     try {
       const res = await getNotifications({ limit: 20 })
-      setNotifications(res.data)
+      const newNotifications = res.data
+
+      if (newNotifications.length > 0) {
+        const currentLatestId = newNotifications[0].id
+
+        // Play sound if this is a background poll and we have a new notification
+        if (silent && latestNotificationIdRef.current && latestNotificationIdRef.current !== currentLatestId) {
+          const audio = new Audio('/sounds/notification.wav')
+          audio.play().catch(err => console.log("Audio play blocked by browser:", err))
+        }
+
+        latestNotificationIdRef.current = currentLatestId
+      }
+
+      setNotifications(newNotifications)
       setTotal(res.meta.total)
     } catch {
       // Silently fail for background polls
