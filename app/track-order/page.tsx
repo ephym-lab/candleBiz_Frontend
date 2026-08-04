@@ -40,8 +40,11 @@ function TrackOrderContent() {
       return
     }
 
-    // Strip "ORD-" prefix if user typed it, backend expects raw ID
-    const cleanId = searchId.replace(/^ORD-/i, "").trim()
+    // Ensure "ORD-" prefix is present since the backend expects the full ID
+    let cleanId = searchId.trim().toUpperCase()
+    if (!cleanId.startsWith("ORD-")) {
+      cleanId = `ORD-${cleanId}`
+    }
 
     setIsLoading(true)
     setError(null)

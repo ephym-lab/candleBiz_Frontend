@@ -449,8 +449,8 @@ export default function AdminOrdersPage() {
 
       {/* View Order Sheet */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="w-full sm:max-w-xl overflow-y-auto pb-24 border-l-muted/60">
-          <SheetHeader className="mb-6 border-b border-muted/60 pb-6">
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto pb-32 px-6 sm:px-10 pt-6 sm:pt-10 border-l-muted/60">
+          <SheetHeader className="mb-8 border-b border-muted/60 pb-6">
             <SheetTitle className="text-xl font-semibold">Order Details</SheetTitle>
             <SheetDescription>
               Manage order <span className="font-mono text-foreground">{selectedOrder?.id}</span>
@@ -511,7 +511,7 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
               
-              <div className="fixed bottom-0 right-0 w-full sm:max-w-xl bg-background border-t border-muted/60 p-6 flex flex-col gap-4">
+              <div className="fixed bottom-0 right-0 w-full sm:max-w-2xl bg-background border-t border-muted/60 p-6 sm:px-10 flex flex-col gap-4">
                 <div>
                   <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2 block">Update Status</label>
                   <Select value={newStatus} onValueChange={(value) => setNewStatus(value as Order["status"])}>
