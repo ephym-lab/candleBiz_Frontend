@@ -245,7 +245,7 @@ export function NotificationBell() {
                 <p className="text-xs text-muted-foreground/70">No notifications yet.</p>
               </div>
             ) : (
-              notifications.map((notification) => (
+              notifications.slice(0, 6).map((notification) => (
                 <button
                   key={notification.id}
                   id={`notification-item-${notification.id}`}

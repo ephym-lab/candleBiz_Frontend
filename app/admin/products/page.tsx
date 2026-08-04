@@ -41,11 +41,12 @@ import {
 } from "@/components/ui/sheet"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Trash2, Plus, Loader2, AlertCircle, Search, X, MoreHorizontal, LayoutGrid, List as ListIcon, Filter, ChevronRight, Settings2, Upload } from "lucide-react"
+import { Edit, Trash2, Plus, Loader2, AlertCircle, Search, X, MoreHorizontal, LayoutGrid, List as ListIcon, Filter, ChevronRight, Settings2, Upload, Star } from "lucide-react"
 import Image from "next/image"
 import { toast } from "sonner"
-import type { Product, UpdateProductRequest } from "@/lib/api/types"
+import type { Product, UpdateProductRequest, Review } from "@/lib/api/types"
 import { getProducts, createProduct, updateProduct, deleteProduct, updateStock, searchProducts } from "@/lib/api/services/products"
+import { getProductReviews } from "@/lib/api/services/reviews"
 import { useSearchParams } from "next/navigation"
 
 const scents = ["lavender", "vanilla", "citrus", "eucalyptus", "rose", "sandalwood", "jasmine", "cinnamon"]
@@ -61,6 +62,8 @@ export default function AdminProductsPage() {
   const [selectedScent, setSelectedScent] = useState("all")
   const [selectedSize, setSelectedSize] = useState("all")
   const [viewProduct, setViewProduct] = useState<Product | null>(null)
+  const [productReviews, setProductReviews] = useState<Review[]>([])
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [pagination, setPagination] = useState<any>(null)
   
@@ -135,6 +138,26 @@ export default function AdminProductsPage() {
 
     return () => clearTimeout(timeoutId)
   }, [searchQuery, currentPage])
+
+  // Fetch reviews when viewing a product
+  useEffect(() => {
+    if (viewProduct) {
+      const fetchReviews = async () => {
+        setIsLoadingReviews(true)
+        try {
+          const reviews = await getProductReviews(viewProduct.id)
+          setProductReviews(reviews)
+        } catch (err) {
+          console.error("Failed to fetch reviews:", err)
+        } finally {
+          setIsLoadingReviews(false)
+        }
+      }
+      fetchReviews()
+    } else {
+      setProductReviews([])
+    }
+  }, [viewProduct])
 
   // Handle create product
   const handleCreateProduct = async (e: React.FormEvent) => {
@@ -1059,6 +1082,49 @@ export default function AdminProductsPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Product Reviews */}
+                <div className="pt-4 mt-4 border-t">
+                  <h3 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Product Reviews</h3>
+                  {isLoadingReviews ? (
+                    <div className="flex justify-center items-center py-6">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : productReviews.length > 0 ? (
+                    <div className="space-y-4">
+                      {productReviews.map((review) => (
+                        <div key={review.id} className="bg-muted/30 p-4 rounded-xl border">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <p className="font-semibold text-sm">{review.author}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <div className="flex">
+                                  {Array.from({ length: 5 }).map((_, i) => (
+                                    <Star 
+                                      key={i} 
+                                      className={`h-3 w-3 ${i < review.rating ? "fill-[#F26419] text-[#F26419]" : "fill-muted text-muted-foreground"}`} 
+                                    />
+                                  ))}
+                                </div>
+                                {review.verified && (
+                                  <Badge variant="outline" className="text-[10px] h-4 px-1 py-0">Verified</Badge>
+                                )}
+                              </div>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(review.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="text-sm text-foreground/80 mt-2 italic">"{review.comment}"</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 bg-muted/20 rounded-xl border border-dashed">
+                      <p className="text-sm text-muted-foreground">No reviews yet for this product.</p>
+                    </div>
+                  )}
+                </div>
               </div>
                 
               {/* Action Buttons */}

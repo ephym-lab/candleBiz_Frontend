@@ -28,6 +28,11 @@ export async function getProductReviews(productId: string, verifiedOnly: boolean
         return (data as any).data
     }
 
+    // If data has a 'reviews' property that's an array, return that
+    if (data && typeof data === 'object' && 'reviews' in data && Array.isArray((data as any).reviews)) {
+        return (data as any).reviews
+    }
+
     // Otherwise return empty array
     return []
 }
