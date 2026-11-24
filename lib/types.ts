@@ -51,6 +51,7 @@ export interface OrderFormData {
   phone: string
   address: string
   city: string
+  county: string
   paymentMethod: "mpesa" | "cash"
   mpesaPhone?: string
 }

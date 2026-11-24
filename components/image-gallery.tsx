@@ -10,44 +10,46 @@ interface ImageGalleryProps {
 }
 
 export function ImageGallery({ images, productName }: ImageGalleryProps) {
-    const [selectedImage, setSelectedImage] = useState(0)
+    const unique = Array.from(new Set(images.filter(Boolean)))
+    const [selected, setSelected] = useState(0)
 
-    if (!images || images.length === 0) {
-        return null
+    if (unique.length === 0) {
+        return <div className="aspect-[4/5] rounded-2xl bg-muted" />
     }
 
     return (
-        <div className="space-y-4">
-            {/* Main Image */}
-            <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
+        <div className="flex flex-col-reverse gap-4 md:flex-row">
+            {unique.length > 1 && (
+                <ul className="flex gap-3 md:w-20 md:flex-col" aria-label="Product photos">
+                    {unique.map((image, index) => (
+                        <li key={image} className="w-20 shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => setSelected(index)}
+                                aria-label={`Show photo ${index + 1} of ${unique.length}`}
+                                aria-current={selected === index}
+                                className={cn(
+                                    "relative block aspect-square w-full overflow-hidden rounded-lg bg-muted ring-offset-2 ring-offset-background transition",
+                                    selected === index ? "ring-2 ring-foreground" : "opacity-70 hover:opacity-100",
+                                )}
+                            >
+                                <Image src={image} alt="" fill sizes="80px" className="object-cover" />
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            )}
+
+            <div className="relative aspect-[4/5] flex-1 overflow-hidden rounded-2xl bg-muted">
                 <Image
-                    src={images[selectedImage] || "/placeholder.svg"}
-                    alt={`${productName} - Image ${selectedImage + 1}`}
+                    src={unique[selected] || "/placeholder.svg"}
+                    alt={unique.length > 1 ? `${productName}, photo ${selected + 1} of ${unique.length}` : productName}
                     fill
-                    className="object-contain"
+                    sizes="(min-width: 1024px) 50vw, 100vw"
+                    className="object-cover"
                     priority
                 />
             </div>
-
-            {/* Thumbnails */}
-            {images.length > 1 && (
-                <div className="grid grid-cols-4 gap-4">
-                    {images.map((image, index) => (
-                        <button
-                            key={index}
-                            onClick={() => setSelectedImage(index)}
-                            className={cn(
-                                "relative aspect-square overflow-hidden rounded-md border-2 transition-all",
-                                selectedImage === index
-                                    ? "border-primary ring-2 ring-primary ring-offset-2"
-                                    : "border-transparent hover:border-muted-foreground/50",
-                            )}
-                        >
-                            <Image src={image || "/placeholder.svg"} alt={`${productName} thumbnail ${index + 1}`} fill className="object-cover" />
-                        </button>
-                    ))}
-                </div>
-            )}
         </div>
     )
 }

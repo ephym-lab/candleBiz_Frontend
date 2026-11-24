@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Playfair_Display, Inter } from "next/font/google"
+import { Young_Serif, Albert_Sans } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { CartProvider } from "@/lib/cart-context"
@@ -10,20 +10,23 @@ import { RecentlyViewedProvider } from "@/lib/recently-viewed-context"
 import { ReviewsProvider } from "@/lib/reviews-context"
 import { Toaster } from "sonner"
 
-const playfair = Playfair_Display({
+const youngSerif = Young_Serif({
   subsets: ["latin"],
-  variable: "--font-serif",
+  weight: "400",
+  variable: "--font-young-serif",
+  display: "swap",
 })
 
-const inter = Inter({
+const albertSans = Albert_Sans({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-albert-sans",
+  display: "swap",
 })
 
 export const metadata: Metadata = {
-  title: "Luxe Candles - Handmade Scented Soy Candles",
+  title: "Smells by Kourtney | Handmade soy candles",
   description:
-    "Discover our collection of handmade, eco-friendly soy wax candles. Crafted with love and natural essential oils for your home.",
+    "Handmade, hand-poured scented candles in 100% natural soy wax. Floral, gourmand, woodsy and fruity scents. Call 0729 302 230 to order.",
 }
 
 export default function RootLayout({
@@ -32,8 +35,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
+    <html lang="en" className={`${albertSans.variable} ${youngSerif.variable}`}>
+      <body className="font-sans antialiased">
         <AdminProvider>
           <WishlistProvider>
             <RecentlyViewedProvider>

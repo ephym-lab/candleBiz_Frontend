@@ -1,10 +1,34 @@
 import Image from "next/image"
 import Link from "next/link"
+import type { Metadata } from "next"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Heart, Leaf, Sparkles, Users } from "lucide-react"
+import { BRAND, scentFamilies, allScents } from "@/lib/scents"
+
+export const metadata: Metadata = {
+  title: "Our story | Smells by Kourtney",
+  description: "Handmade, hand-poured scented candles in 100% natural soy wax.",
+}
+
+/*
+ * Written only from facts on the Smells by Kourtney flier.
+ * Kourtney can replace these paragraphs with her own story: edit the text here, nothing else needs to change.
+ */
+const story = {
+  heading: "Scented candles, made and poured by hand",
+  lede: `${BRAND.name} makes scented candles from 100% natural soy wax. Every candle is made and poured by hand.`,
+  paragraphs: [
+    "There are ten scents to choose from, grouped into four families: floral, gourmand, woodsy and fruity. Whether you want something soft for the bedroom or bright for the kitchen, there's a candle for the mood.",
+    `You can order through this site and pay cash when your candles arrive, or call ${BRAND.phone} to order by phone.`,
+  ],
+}
+
+const facts = [
+  { title: "100% natural soy wax", body: "Every candle is poured with natural soy wax." },
+  { title: "Handmade, hand-poured", body: "Every jar is made and poured by hand." },
+  { title: `${allScents.length} scents`, body: "Across four families, from lavender to strawberry." },
+]
 
 export default function AboutPage() {
   return (
@@ -12,170 +36,81 @@ export default function AboutPage() {
       <Navigation />
 
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-b from-secondary/50 to-background py-16 md:py-24">
-          <div className="container mx-auto px-4">
-            <div className="mx-auto max-w-3xl text-center">
-              <h1 className="font-serif text-4xl font-bold text-foreground md:text-5xl text-balance">Our Story</h1>
-              <p className="mt-6 text-lg text-muted-foreground leading-relaxed">
-                Handcrafting candles with love, care, and natural ingredients to bring warmth and tranquility to your
-                home.
-              </p>
+        {/* Story */}
+        <section className="container mx-auto grid items-center gap-12 px-4 pb-20 pt-14 md:pt-20 lg:grid-cols-[1.1fr_1fr] lg:gap-20">
+          <div>
+            <h1 className="type-display max-w-[16ch] text-foreground">{story.heading}</h1>
+            <p className="type-lede mt-6 max-w-[48ch] text-muted-foreground">{story.lede}</p>
+            <div className="mt-6 max-w-[58ch] space-y-4 leading-relaxed text-foreground/85">
+              {story.paragraphs.map((p) => (
+                <p key={p}>{p}</p>
+              ))}
+            </div>
+            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+              <Button asChild size="lg">
+                <Link href="/shop">Shop candles</Link>
+              </Button>
+              <Button asChild variant="link">
+                <a href={BRAND.phoneHref}>Call {BRAND.phone}</a>
+              </Button>
+            </div>
+          </div>
+          <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-muted">
+            <Image
+              src="/photos/web/candle4.jpg"
+              alt="A hand-poured Smells by Kourtney candle"
+              fill
+              priority
+              sizes="(min-width: 1024px) 40vw, 100vw"
+              className="object-cover"
+            />
+          </div>
+        </section>
+
+        {/* Facts */}
+        <section className="border-y border-border bg-card">
+          <dl className="container mx-auto grid gap-10 px-4 py-14 sm:grid-cols-3">
+            {facts.map((f) => (
+              <div key={f.title}>
+                <dt className="font-serif text-2xl text-foreground">{f.title}</dt>
+                <dd className="mt-2 max-w-[32ch] text-muted-foreground">{f.body}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        {/* Tagline */}
+        <section className="bg-foreground text-background">
+          <div className="container mx-auto grid items-center gap-12 px-4 py-20 md:grid-cols-[1fr_20rem] lg:gap-20">
+            <blockquote>
+              <p className="type-title max-w-[18ch]">{BRAND.tagline}.</p>
+              <footer className="mt-5 text-background/65">The {BRAND.name} motto</footer>
+            </blockquote>
+            <div className="relative aspect-square overflow-hidden rounded-2xl">
+              <Image src="/photos/web/candle1.jpg" alt="" fill sizes="20rem" className="object-cover" />
             </div>
           </div>
         </section>
 
-        {/* Story Section */}
-        <section className="py-16 md:py-24">
-          <div className="container mx-auto px-4">
-            <div className="grid items-center gap-12 lg:grid-cols-2">
-              <div className="relative aspect-square overflow-hidden rounded-lg">
-                <Image
-                  src="/about-artisan-making-candles.jpg"
-                  alt="Artisan carefully crafting handmade candles"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-
-              <div>
-                <h2 className="font-serif text-3xl font-bold text-foreground md:text-4xl">Crafted with Passion</h2>
-                <div className="mt-6 space-y-4 text-muted-foreground leading-relaxed">
-                  <p>
-                    Welcome to Luxe Candles, where every candle tells a story. Founded in 2020, our journey began with a
-                    simple belief: that the ambiance of your space should be as unique and beautiful as you are.
+        {/* Scents */}
+        <section className="container mx-auto px-4 py-20">
+          <h2 className="type-heading text-foreground">The scents</h2>
+          <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {scentFamilies.map((family) => (
+              <li key={family.id}>
+                <Link
+                  href={`/shop?family=${family.id}`}
+                  className="jar-label block h-full px-6 py-6 transition-colors hover:bg-secondary/50"
+                >
+                  <h3 className="font-serif text-2xl">{family.name}</h3>
+                  <p className="mt-2 text-[0.9375rem] text-muted-foreground">{family.note}</p>
+                  <p className="mt-5 border-t border-foreground/15 pt-4 text-[0.9375rem]">
+                    {family.scents.join(", ")}
                   </p>
-                  <p>
-                    We started small, experimenting with different scents and wax blends in a tiny workshop. What began
-                    as a passion project quickly grew into something much bigger when friends and family fell in love
-                    with our handcrafted creations.
-                  </p>
-                  <p>
-                    Today, each candle is still made by hand in small batches, using 100% natural soy wax and premium
-                    essential oils. We believe in sustainability, quality, and the power of a beautiful scent to
-                    transform your day.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Values Section */}
-        <section className="bg-muted/30 py-16 md:py-24">
-          <div className="container mx-auto px-4">
-            <div className="mb-12 text-center">
-              <h2 className="font-serif text-3xl font-bold text-foreground md:text-4xl">Our Values</h2>
-              <p className="mt-4 text-muted-foreground">What makes us different</p>
-            </div>
-
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-              <Card className="border-border/50">
-                <CardContent className="flex flex-col items-center gap-4 p-6 text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                    <Leaf className="h-8 w-8 text-primary" />
-                  </div>
-                  <h3 className="font-serif text-xl font-semibold text-foreground">Natural</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    We use only 100% natural soy wax and essential oils, free from harmful chemicals and additives.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/50">
-                <CardContent className="flex flex-col items-center gap-4 p-6 text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                    <Heart className="h-8 w-8 text-primary" />
-                  </div>
-                  <h3 className="font-serif text-xl font-semibold text-foreground">Handmade</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Every candle is carefully crafted by hand in small batches to ensure premium quality.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/50">
-                <CardContent className="flex flex-col items-center gap-4 p-6 text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                    <Sparkles className="h-8 w-8 text-primary" />
-                  </div>
-                  <h3 className="font-serif text-xl font-semibold text-foreground">Quality</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    We never compromise on quality. Each candle is tested to ensure perfect scent throw and burn time.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/50">
-                <CardContent className="flex flex-col items-center gap-4 p-6 text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                    <Users className="h-8 w-8 text-primary" />
-                  </div>
-                  <h3 className="font-serif text-xl font-semibold text-foreground">Community</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    We support local artisans and give back to our community with every purchase.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
-
-        {/* Process Section */}
-        <section className="py-16 md:py-24">
-          <div className="container mx-auto px-4">
-            <div className="mx-auto max-w-3xl text-center">
-              <h2 className="font-serif text-3xl font-bold text-foreground md:text-4xl">Our Process</h2>
-              <p className="mt-4 text-muted-foreground">How we create each candle</p>
-            </div>
-
-            <div className="mt-12 grid gap-8 md:grid-cols-3">
-              <div className="text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-                  1
-                </div>
-                <h3 className="font-semibold text-foreground">Selection</h3>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                  We carefully select premium soy wax and natural essential oils for each unique scent blend.
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-                  2
-                </div>
-                <h3 className="font-semibold text-foreground">Handcrafting</h3>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                  Each candle is hand-poured in small batches, allowing us to maintain strict quality control.
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-                  3
-                </div>
-                <h3 className="font-semibold text-foreground">Quality Check</h3>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                  Every candle is tested for proper burn time, scent throw, and overall quality before shipping.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="bg-gradient-to-r from-secondary/30 to-accent/30 py-16 md:py-24">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="font-serif text-3xl font-bold text-foreground md:text-4xl text-balance">
-              Experience the Difference
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-muted-foreground leading-relaxed">
-              Join hundreds of satisfied customers who have transformed their spaces with our handcrafted candles.
-            </p>
-            <Button asChild size="lg" className="mt-8">
-              <Link href="/shop">Shop Our Collection</Link>
-            </Button>
-          </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
       </main>
 

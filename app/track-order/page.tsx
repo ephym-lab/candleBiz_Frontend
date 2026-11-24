@@ -1,16 +1,24 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, Suspense, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
+import { AlertCircle } from "lucide-react"
+import { Navigation } from "@/components/navigation"
+import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { PackageSearch, Loader2, Search, MapPin, Package, CreditCard, ChevronRight, CheckCircle2 } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { OrderProgress } from "@/components/order-progress"
 import { trackOrder } from "@/lib/api/services/orders"
+import { BRAND } from "@/lib/scents"
+import { kes } from "@/lib/pricing"
 import type { Order } from "@/lib/api/types"
-import { toast } from "sonner"
+
+function normaliseId(raw: string) {
+  const id = raw.trim().toUpperCase()
+  return id.startsWith("ORD-") ? id : `ORD-${id}`
+}
 
 function TrackOrderContent() {
   const searchParams = useSearchParams()
@@ -20,238 +28,185 @@ function TrackOrderContent() {
   const [order, setOrder] = useState<Order | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Auto-fill from URL parameters if available
-  useEffect(() => {
-    const urlOrderId = searchParams.get("id")
-    const urlEmail = searchParams.get("email")
-
-    if (urlOrderId) setOrderId(urlOrderId)
-    if (urlEmail) setEmail(urlEmail)
-
-    // If both are present, automatically search
-    if (urlOrderId && urlEmail) {
-      handleTrackOrder(urlOrderId, urlEmail)
-    }
-  }, [searchParams])
-
-  const handleTrackOrder = async (searchId: string = orderId, searchEmail: string = email) => {
-    if (!searchId.trim() || !searchEmail.trim()) {
-      toast.error("Please enter both Order ID and Email Address")
+  const lookup = useCallback(async (id: string, mail: string) => {
+    if (!id.trim() || !mail.trim()) {
+      setError("Enter both your order number and email.")
       return
     }
-
-    // Ensure "ORD-" prefix is present since the backend expects the full ID
-    let cleanId = searchId.trim().toUpperCase()
-    if (!cleanId.startsWith("ORD-")) {
-      cleanId = `ORD-${cleanId}`
-    }
-
     setIsLoading(true)
     setError(null)
     setOrder(null)
-
     try {
-      const data = await trackOrder(cleanId, searchEmail.trim())
+      const data = await trackOrder(normaliseId(id), mail.trim())
       setOrder(data as Order)
-    } catch (err: any) {
-      console.error("Failed to track order:", err)
-      const errorMessage = err.response?.data?.detail || "Order not found or email does not match."
-      setError(errorMessage)
+    } catch {
+      setError(
+        "No order matches that number and email. Check both against your confirmation email; the email must be the one you ordered with.",
+      )
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "delivered":
-        return "bg-green-500/10 text-green-500 border-green-500/20"
-      case "processing":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20"
-      case "shipped":
-        return "bg-purple-500/10 text-purple-500 border-purple-500/20"
-      case "cancelled":
-        return "bg-red-500/10 text-red-500 border-red-500/20"
-      case "paid":
-        return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-      default:
-        return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-    }
-  }
+  // Links from the order confirmation fill both fields and look the order up straight away.
+  useEffect(() => {
+    const id = searchParams.get("id")
+    const mail = searchParams.get("email")
+    if (id) setOrderId(id)
+    if (mail) setEmail(mail)
+    if (id && mail) lookup(id, mail)
+  }, [searchParams, lookup])
 
   return (
-    <div className="container mx-auto px-4 py-16 max-w-4xl min-h-[70vh]">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold tracking-tight mb-4">Track Your Order</h1>
-        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-          Enter your Order ID and the email address you used during checkout to see the current status of your shipment.
-        </p>
-      </div>
+    <div className="container mx-auto px-4 pb-24 pt-14 md:pt-20">
+      <div className="grid gap-12 lg:grid-cols-[22rem_1fr] lg:gap-20">
+        <div>
+          <h1 className="type-title text-foreground">Track an order</h1>
+          <p className="mt-4 text-muted-foreground">
+            Enter the order number from your confirmation email and the email you ordered with.
+          </p>
 
-      <Card className="max-w-xl mx-auto shadow-sm border-muted/60 mb-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <PackageSearch className="h-5 w-5 text-primary" />
-            Order Details
-          </CardTitle>
-          <CardDescription>
-            You can find your Order ID in the confirmation email we sent you.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form 
+          <form
             onSubmit={(e) => {
               e.preventDefault()
-              handleTrackOrder()
-            }} 
-            className="space-y-4"
+              lookup(orderId, email)
+            }}
+            className="mt-8 space-y-5"
+            noValidate
           >
-            <div className="space-y-2">
-              <Label htmlFor="orderId">Order ID</Label>
-              <Input 
-                id="orderId" 
-                placeholder="e.g. 5f1b2c3d" 
+            <div>
+              <Label htmlFor="orderId" className="mb-2 block text-[0.9375rem] font-normal">
+                Order number
+              </Label>
+              <Input
+                id="orderId"
+                placeholder="ORD-5F1B2C3D"
                 value={orderId}
                 onChange={(e) => setOrderId(e.target.value)}
-                required
+                autoComplete="off"
+                className="uppercase placeholder:normal-case"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="e.g. hello@example.com" 
+            <div>
+              <Label htmlFor="email" className="mb-2 block text-[0.9375rem] font-normal">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
               />
             </div>
-            <Button type="submit" className="w-full mt-2" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Searching...
-                </>
-              ) : (
-                <>
-                  <Search className="mr-2 h-4 w-4" />
-                  Track Order
-                </>
-              )}
+            <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+              {isLoading ? "Looking it up…" : "Track order"}
             </Button>
           </form>
-        </CardContent>
-      </Card>
 
-      {error && (
-        <div className="max-w-xl mx-auto p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 text-center flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-4">
-          <AlertCircleIcon className="h-5 w-5" />
-          <p>{error}</p>
+          <p className="mt-6 text-[0.9375rem] text-muted-foreground">
+            Lost your confirmation? Call{" "}
+            <a href={BRAND.phoneHref} className="text-foreground underline decoration-primary/50 underline-offset-4">
+              {BRAND.phone}
+            </a>
+            .
+          </p>
         </div>
-      )}
 
-      {order && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-500">
-          <div className="flex items-center justify-between flex-wrap gap-4 bg-muted/30 p-6 rounded-xl border border-muted/60">
-            <div>
-              <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider mb-1">Order Status</p>
-              <Badge variant="outline" className={`h-8 px-4 text-sm font-semibold capitalize ${getStatusColor(order.status)}`}>
-                {order.status}
-              </Badge>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider mb-1">Order Date</p>
-              <p className="font-semibold text-foreground">
-                {new Date(order.createdAt).toLocaleDateString("en-US", {
-                  year: "numeric", month: "long", day: "numeric"
-                })}
-              </p>
-            </div>
-          </div>
+        <div aria-live="polite">
+          {error && (
+            <p role="alert" className="flex gap-3 rounded-xl bg-destructive/10 p-5 text-[0.9375rem] text-destructive">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+              {error}
+            </p>
+          )}
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card className="border-muted/60 shadow-sm">
-              <CardHeader className="pb-3 border-b border-muted/20">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Package className="h-4 w-4 text-primary" />
-                  Items in Shipment
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="space-y-4">
-                  {order.items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-sm">
-                      <div className="flex items-center gap-3">
-                        <span className="font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md">{item.quantity}x</span>
-                        <span className="font-medium">{item.productName || item.productId}</span>
-                      </div>
-                      {item.price && (
-                        <span className="font-medium text-muted-foreground">
-                          KES {(item.price * item.quantity).toLocaleString()}
+          {isLoading && (
+            <div className="jar-label space-y-4 px-7 py-7">
+              <Skeleton className="h-8 w-1/2" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          )}
+
+          {!order && !error && !isLoading && (
+            <div className="hidden h-full min-h-[18rem] items-center justify-center rounded-2xl border border-dashed border-border p-10 text-center lg:flex">
+              <p className="max-w-[30ch] text-muted-foreground">Your order&apos;s progress will appear here.</p>
+            </div>
+          )}
+
+          {order && (
+            <article className="jar-label px-7 py-8 sm:px-9">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <h2 className="font-serif text-[1.75rem] leading-none tabular">{order.id}</h2>
+                <p className="text-[0.9375rem] text-muted-foreground">
+                  Placed{" "}
+                  {new Date(order.createdAt || order.orderDate).toLocaleDateString("en-KE", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+
+              <div className="mt-8">
+                <OrderProgress status={order.status} />
+              </div>
+
+              <div className="mt-8 grid gap-8 border-t border-foreground/15 pt-6 sm:grid-cols-2">
+                <div>
+                  <h3 className="text-[0.9375rem] text-muted-foreground">In this order</h3>
+                  <ul className="mt-3 space-y-2 text-[0.9375rem]">
+                    {order.items.map((item, idx) => (
+                      <li key={idx} className="flex justify-between gap-4">
+                        <span>
+                          {item.quantity} × {item.productName || "Candle"}
                         </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-muted/60 shadow-sm">
-              <CardHeader className="pb-3 border-b border-muted/20">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-primary" />
-                  Delivery Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-4">
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Shipping To</p>
-                  <p className="text-sm font-medium">{order.customerName}</p>
-                  <p className="text-sm text-muted-foreground">{order.address}</p>
-                  <p className="text-sm text-muted-foreground">{order.city}, {order.county}</p>
+                        {item.price !== undefined && <span className="tabular">{kes(item.price * item.quantity)}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-4 flex justify-between border-t border-foreground/10 pt-3 text-[0.9375rem]">
+                    <span>Total{order.paymentMethod === "cash" ? ", paid on delivery" : ""}</span>
+                    <span className="font-serif text-xl tabular">{kes(order.total)}</span>
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Payment Method</p>
-                  <div className="flex items-center gap-2 text-sm capitalize font-medium">
-                    <CreditCard className="h-4 w-4 text-muted-foreground" />
-                    {order.paymentMethod}
-                  </div>
+                  <h3 className="text-[0.9375rem] text-muted-foreground">Delivering to</h3>
+                  <p className="mt-3 text-[0.9375rem] leading-relaxed">
+                    {order.customerName}
+                    <br />
+                    {order.address}
+                    <br />
+                    {order.city}, {order.county}
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </article>
+          )}
         </div>
-      )}
+      </div>
     </div>
-  )
-}
-
-function AlertCircleIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" x2="12" y1="8" y2="12" />
-      <line x1="12" x2="12.01" y1="16" y2="16" />
-    </svg>
   )
 }
 
 export default function TrackOrderPage() {
   return (
-    <Suspense fallback={<div className="container mx-auto p-16 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /></div>}>
-      <TrackOrderContent />
-    </Suspense>
+    <div className="flex min-h-screen flex-col">
+      <Navigation />
+      <main className="flex-1">
+        <Suspense
+          fallback={
+            <div className="container mx-auto px-4 py-20">
+              <Skeleton className="h-12 w-1/3" />
+            </div>
+          }
+        >
+          <TrackOrderContent />
+        </Suspense>
+      </main>
+      <Footer />
+    </div>
   )
 }

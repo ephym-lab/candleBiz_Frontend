@@ -49,7 +49,7 @@ import { getProducts, createProduct, updateProduct, deleteProduct, updateStock, 
 import { getProductReviews } from "@/lib/api/services/reviews"
 import { useSearchParams } from "next/navigation"
 
-const scents = ["lavender", "vanilla", "citrus", "eucalyptus", "rose", "sandalwood", "jasmine", "cinnamon"]
+const scents = ["lavender", "jasmine", "rose", "vanilla", "coffee", "sandalwood", "green tea", "orange", "lemon", "strawberry"]
 const sizes = ["small", "medium", "large"]
 
 export default function AdminProductsPage() {

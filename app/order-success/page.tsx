@@ -3,147 +3,156 @@
 import { Suspense, useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { Check, Copy } from "lucide-react"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { CheckCircle, Package, Mail, Home, Phone, Loader2 } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { BRAND } from "@/lib/scents"
+import { kes } from "@/lib/pricing"
 import type { Order } from "@/lib/api/types"
+
+// What happens after an order is a real sequence, so it's numbered.
+const nextSteps = [
+  { title: "We call to confirm", body: "Expect a call on the number you gave to confirm your order and a delivery time." },
+  { title: "Your candles are wrapped", body: "Each one is checked and packed by hand." },
+  { title: "Pay on delivery", body: "Pay the rider in cash when your candles arrive." },
+]
 
 function OrderSuccessContent() {
   const searchParams = useSearchParams()
   const orderId = searchParams.get("orderId")
   const [order, setOrder] = useState<Order | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    async function fetchOrder() {
-      if (!orderId) {
-        setIsLoading(false)
-        return
-      }
-
-      try {
-        const { getOrder } = await import("@/lib/api/services/orders")
-        const orderData = await getOrder(orderId)
-        setOrder(orderData)
-      } catch (error) {
-        console.error("Failed to fetch order:", error)
-      } finally {
-        setIsLoading(false)
-      }
+    if (!orderId) {
+      setIsLoading(false)
+      return
     }
-
-    fetchOrder()
+    import("@/lib/api/services/orders")
+      .then(({ getOrder }) => getOrder(orderId))
+      .then(setOrder)
+      .catch((error) => console.error("Failed to fetch order:", error))
+      .finally(() => setIsLoading(false))
   }, [orderId])
 
+  const copyId = async () => {
+    if (!orderId) return
+    try {
+      await navigator.clipboard.writeText(orderId)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      /* clipboard blocked: the ID is still visible to copy by hand */
+    }
+  }
+
+  const trackHref = order ? `/track-order?id=${order.id}&email=${encodeURIComponent(order.email)}` : "/track-order"
+
   return (
-    <section className="py-16 md:py-24">
-      <div className="container mx-auto px-4">
-        <div className="mx-auto max-w-2xl text-center">
-          {/* Success Icon */}
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-            <CheckCircle className="h-12 w-12 text-primary" />
-          </div>
+    <div className="container mx-auto grid gap-14 px-4 pb-24 pt-14 md:pt-20 lg:grid-cols-[1fr_26rem] lg:gap-20">
+      <div>
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <Check className="h-6 w-6" aria-hidden />
+        </span>
+        <h1 className="type-display mt-6 max-w-[14ch] text-foreground">Thank you, your order is in</h1>
+        <p className="type-lede mt-5 max-w-[48ch] text-muted-foreground">
+          {order
+            ? `A confirmation is on its way to ${order.email}.`
+            : "A confirmation email is on its way."}{" "}
+          Keep your order number handy in case you need to get in touch.
+        </p>
 
-          {/* Success Message */}
-          <h1 className="mt-6 font-serif text-3xl font-bold text-foreground md:text-4xl text-balance">
-            Order Placed Successfully!
-          </h1>
-          <p className="mt-4 text-muted-foreground leading-relaxed">
-            Thank you for your purchase. Your order has been received and is being processed.
-          </p>
-
-          {/* Order ID */}
-          {order && (
-            <Card className="mt-6 border-2 border-primary/20 bg-primary/5">
-              <CardContent className="p-4">
-                <p className="text-sm text-muted-foreground">Order ID</p>
-                <p className="text-lg font-semibold text-foreground">{order.id}</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Total: <span className="font-semibold text-primary">KES {order.total.toLocaleString()}</span>
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Order Details Card */}
-          <Card className="mt-8 text-left">
-            <CardContent className="p-6">
-              <h2 className="font-semibold text-foreground">What happens next?</h2>
-
-              <div className="mt-6 space-y-4">
-                <div className="flex gap-4">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
-                    <Phone className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-foreground">Confirmation Call</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Our team will call you shortly to confirm your order and delivery details.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
-                    <Mail className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-foreground">Order Confirmation</h3>
-                    <p className="text-sm text-muted-foreground">
-                      You will receive an email confirmation with your order details shortly.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
-                    <Package className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-foreground">Processing</h3>
-                    <p className="text-sm text-muted-foreground">
-                      We will carefully prepare your handcrafted candles for shipping.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
-                    <Home className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-foreground">Delivery</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Your order will be delivered to your address within 3-5 business days.
-                    </p>
-                  </div>
-                </div>
+        <h2 className="mt-14 font-serif text-2xl">What happens next</h2>
+        <ol className="mt-6 space-y-6">
+          {nextSteps.map((step, i) => (
+            <li key={step.title} className="grid grid-cols-[2.5rem_1fr] gap-3">
+              <span className="font-serif text-2xl leading-none text-primary tabular" aria-hidden>
+                {i + 1}
+              </span>
+              <div>
+                <h3 className="text-base text-foreground">{step.title}</h3>
+                <p className="mt-1 max-w-[52ch] text-[0.9375rem] text-muted-foreground">{step.body}</p>
               </div>
-            </CardContent>
-          </Card>
+            </li>
+          ))}
+        </ol>
 
-          {/* Action Buttons */}
-          <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center">
-            <Button asChild size="lg">
-              <Link href="/shop">Continue Shopping</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link href="/">Back to Home</Link>
-            </Button>
-          </div>
-
-          {/* Support Message */}
-          <p className="mt-8 text-sm text-muted-foreground">
-            Need help? Contact us at{" "}
-            <a href="mailto:hello@luxecandles.com" className="text-primary hover:underline">
-              hello@luxecandles.com
-            </a>
-          </p>
+        <div className="mt-12 flex flex-wrap gap-3">
+          <Button asChild size="lg">
+            <Link href={trackHref}>Track this order</Link>
+          </Button>
+          <Button asChild size="lg" variant="outline">
+            <Link href="/shop">Keep shopping</Link>
+          </Button>
         </div>
       </div>
-    </section>
+
+      {/* Receipt as a jar label */}
+      <aside className="lg:pt-4">
+        <div className="jar-label px-7 py-7">
+          <p className="text-[0.9375rem] text-muted-foreground">Order number</p>
+          <div className="mt-1 flex items-center justify-between gap-3">
+            <p className="font-serif text-[1.75rem] leading-none tabular">{orderId ?? "Not available"}</p>
+            {orderId && (
+              <button
+                type="button"
+                onClick={copyId}
+                className="flex items-center gap-1.5 rounded-full border border-foreground/20 px-3 py-1.5 text-[0.8125rem] hover:border-foreground/50"
+                aria-label="Copy order number"
+              >
+                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied ? "Copied" : "Copy"}
+              </button>
+            )}
+          </div>
+
+          {isLoading ? (
+            <div className="mt-6 space-y-3 border-t border-foreground/15 pt-5">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+          ) : order ? (
+            <>
+              <ul className="mt-6 space-y-2.5 border-t border-foreground/15 pt-5 text-[0.9375rem]">
+                {order.items.map((item, i) => (
+                  <li key={i} className="flex justify-between gap-4">
+                    <span>
+                      {item.quantity} × {item.productName ?? "Candle"}
+                    </span>
+                    {item.price !== undefined && <span className="tabular">{kes(item.price * item.quantity)}</span>}
+                  </li>
+                ))}
+              </ul>
+              <dl className="mt-5 space-y-2 border-t border-foreground/15 pt-5 text-[0.9375rem]">
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Delivery</dt>
+                  <dd className="tabular">{order.shipping === 0 ? "Free" : kes(order.shipping)}</dd>
+                </div>
+                <div className="flex items-baseline justify-between pt-2">
+                  <dt>Total, paid on delivery</dt>
+                  <dd className="font-serif text-2xl tabular">{kes(order.total)}</dd>
+                </div>
+              </dl>
+              <p className="mt-5 border-t border-foreground/15 pt-5 text-[0.9375rem] text-muted-foreground">
+                Delivering to {order.customerName}, {order.address}, {order.city}, {order.county}.
+              </p>
+            </>
+          ) : null}
+        </div>
+
+        <p className="mt-5 text-[0.9375rem] text-muted-foreground">
+          Questions about your order? Call{" "}
+          <a href={BRAND.phoneHref} className="text-foreground underline decoration-primary/50 underline-offset-4">
+            {BRAND.phone}
+          </a>
+          .
+        </p>
+      </aside>
+    </div>
   )
 }
 
@@ -151,26 +160,17 @@ export default function OrderSuccessPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <Navigation />
-
       <main className="flex-1">
         <Suspense
           fallback={
-            <section className="py-16 md:py-24">
-              <div className="container mx-auto px-4">
-                <div className="mx-auto max-w-2xl text-center">
-                  <div className="flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                  <p className="mt-4 text-muted-foreground">Loading order details...</p>
-                </div>
-              </div>
-            </section>
+            <div className="container mx-auto px-4 py-20">
+              <Skeleton className="h-16 w-2/3" />
+            </div>
           }
         >
           <OrderSuccessContent />
         </Suspense>
       </main>
-
       <Footer />
     </div>
   )

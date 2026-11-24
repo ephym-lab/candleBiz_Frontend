@@ -1,99 +1,80 @@
 import Link from "next/link"
-import { Instagram, Facebook, Mail } from "lucide-react"
+import { Instagram, Phone } from "lucide-react"
+import { Wordmark } from "@/components/wordmark"
+import { BRAND, scentFamilies } from "@/lib/scents"
+
+const helpLinks = [
+  { href: "/track-order", label: "Track an order" },
+  { href: "/contact", label: "Contact us" },
+  { href: "/about", label: "Our story" },
+]
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-muted/30">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid gap-8 md:grid-cols-4">
-          <div className="space-y-4">
-            <h3 className="font-serif text-xl font-bold text-primary">Luxe Candles</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Handcrafted soy wax candles made with love and natural essential oils for your home.
+    <footer className="mt-auto bg-foreground text-background">
+      <div className="container mx-auto px-4 pb-10 pt-16">
+        <div className="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr]">
+          <div className="max-w-sm">
+            <Wordmark size="lg" />
+            <p className="mt-6 font-serif text-xl leading-snug">{BRAND.tagline}.</p>
+            <p className="mt-3 text-[0.9375rem] leading-relaxed text-background/70">
+              Handmade, hand-poured candles in 100% natural soy wax.
             </p>
-          </div>
-
-          <div>
-            <h4 className="mb-4 font-semibold text-foreground">Shop</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link href="/shop" className="transition-colors hover:text-primary">
-                  All Candles
-                </Link>
-              </li>
-              <li>
-                <Link href="/shop?scent=Lavender" className="transition-colors hover:text-primary">
-                  Lavender Collection
-                </Link>
-              </li>
-              <li>
-                <Link href="/shop?scent=Vanilla" className="transition-colors hover:text-primary">
-                  Vanilla Collection
-                </Link>
-              </li>
-              <li>
-                <Link href="/shop?scent=Citrus" className="transition-colors hover:text-primary">
-                  Citrus Collection
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="mb-4 font-semibold text-foreground">Company</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link href="/about" className="transition-colors hover:text-primary">
-                  About Us
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="transition-colors hover:text-primary">
-                  Contact
-                </Link>
-              </li>
-              <li>
-                <Link href="/faq" className="transition-colors hover:text-primary">
-                  FAQ
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="mb-4 font-semibold text-foreground">Follow Us</h4>
-            <div className="flex gap-4">
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <a
+                href={BRAND.phoneHref}
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-background/25 px-4 text-[0.9375rem] transition-colors hover:border-background/60"
+              >
+                <Phone className="h-4 w-4" aria-hidden />
+                Call {BRAND.phone}
+              </a>
               <a
                 href="https://instagram.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted-foreground transition-colors hover:text-primary"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-background/25 text-background/80 transition-colors hover:border-background/60 hover:text-background"
+                aria-label="Instagram"
               >
-                <Instagram className="h-5 w-5" />
-                <span className="sr-only">Instagram</span>
-              </a>
-              <a
-                href="https://facebook.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground transition-colors hover:text-primary"
-              >
-                <Facebook className="h-5 w-5" />
-                <span className="sr-only">Facebook</span>
-              </a>
-              <a
-                href="mailto:hello@luxecandles.com"
-                className="text-muted-foreground transition-colors hover:text-primary"
-              >
-                <Mail className="h-5 w-5" />
-                <span className="sr-only">Email</span>
+                <Instagram className="h-4 w-4" />
               </a>
             </div>
           </div>
+
+          <nav aria-label="Shop by scent">
+            <h2 className="font-serif text-lg">Shop by scent</h2>
+            <ul className="mt-4 space-y-2.5 text-[0.9375rem] text-background/70">
+              <li>
+                <Link href="/shop" className="transition-colors hover:text-background">
+                  All candles
+                </Link>
+              </li>
+              {scentFamilies.map((f) => (
+                <li key={f.id}>
+                  <Link href={`/shop?family=${f.id}`} className="transition-colors hover:text-background">
+                    {f.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <nav aria-label="Help">
+            <h2 className="font-serif text-lg">Help</h2>
+            <ul className="mt-4 space-y-2.5 text-[0.9375rem] text-background/70">
+              {helpLinks.map((l) => (
+                <li key={l.href}>
+                  <Link href={l.href} className="transition-colors hover:text-background">
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
         </div>
 
-        <div className="mt-8 border-t border-border pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Luxe Candles. All rights reserved.</p>
+        <div className="mt-16 flex flex-col gap-2 border-t border-background/15 pt-6 text-[0.8125rem] text-background/55 sm:flex-row sm:justify-between">
+          <p>&copy; {new Date().getFullYear()} Smells by Kourtney</p>
+          <p>Prices in Kenyan shillings. Pay cash on delivery.</p>
         </div>
       </div>
     </footer>

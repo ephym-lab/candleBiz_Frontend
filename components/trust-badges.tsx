@@ -1,36 +1,33 @@
-"use client"
-
-import { Leaf, Heart, Truck, Shield } from "lucide-react"
+import { Leaf, Hand, Truck, ShieldCheck, Flower2, Phone } from "lucide-react"
 import { trustBadges } from "@/lib/testimonials"
 
 const iconMap = {
     Leaf,
-    Heart,
+    Heart: Hand,
     Truck,
-    Shield,
+    Shield: ShieldCheck,
+    Flower: Flower2,
+    Phone,
 }
 
+/** A quiet strip of facts that sits under the hero. No boxes, no icon bubbles. */
 export function TrustBadges() {
     return (
-        <section className="py-12 border-y border-border bg-background">
-            <div className="container mx-auto px-4">
-                <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-                    {trustBadges.map((badge) => {
-                        const Icon = iconMap[badge.icon as keyof typeof iconMap]
-                        return (
-                            <div key={badge.id} className="flex flex-col items-center text-center gap-3">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                                    <Icon className="h-6 w-6 text-primary" />
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold text-foreground text-sm">{badge.title}</h3>
-                                    <p className="text-xs text-muted-foreground mt-1">{badge.description}</p>
-                                </div>
+        <section aria-label="Why people buy from us" className="border-y border-border bg-secondary/40">
+            <ul className="container mx-auto grid grid-cols-1 gap-x-8 gap-y-6 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
+                {trustBadges.map((badge) => {
+                    const Icon = iconMap[badge.icon as keyof typeof iconMap] ?? Leaf
+                    return (
+                        <li key={badge.id} className="flex gap-3.5">
+                            <Icon className="mt-1 h-5 w-5 shrink-0 text-primary" strokeWidth={1.5} aria-hidden />
+                            <div>
+                                <p className="font-serif text-lg leading-snug text-foreground">{badge.title}</p>
+                                <p className="mt-0.5 text-[0.9375rem] text-muted-foreground">{badge.description}</p>
                             </div>
-                        )
-                    })}
-                </div>
-            </div>
+                        </li>
+                    )
+                })}
+            </ul>
         </section>
     )
 }

@@ -2,218 +2,200 @@
 
 import Image from "next/image"
 import Link from "next/link"
+import { Minus, Plus } from "lucide-react"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { useCart } from "@/lib/cart-context"
-import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react"
+import { useCart, lineUnitPrice } from "@/lib/cart-context"
+import { DELIVERY_FEE, FREE_DELIVERY_FROM, deliveryFee, kes } from "@/lib/pricing"
+import { displayScent } from "@/lib/scents"
 
 export default function CartPage() {
-  const { cart, removeFromCart, updateQuantity, cartTotal, clearCart } = useCart()
+  const { cart, removeFromCart, updateQuantity, cartTotal, cartCount } = useCart()
 
   if (cart.length === 0) {
     return (
       <div className="flex min-h-screen flex-col">
         <Navigation />
-
-        <main className="flex flex-1 items-center justify-center">
-          <div className="container mx-auto px-4 py-16 text-center">
-            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-muted">
-              <ShoppingBag className="h-12 w-12 text-muted-foreground" />
-            </div>
-            <h1 className="mt-6 font-serif text-2xl font-bold text-foreground md:text-3xl">Your cart is empty</h1>
-            <p className="mt-2 text-muted-foreground">Add some beautiful candles to get started</p>
+        <main className="flex flex-1 items-center justify-center px-4 py-24">
+          <div className="jar-label max-w-md px-8 py-10 text-center">
+            <h1 className="type-heading text-foreground">Your cart is empty</h1>
+            <p className="mt-3 text-muted-foreground">
+              Find a scent you like and add it here. Your cart is saved on this device until you check out.
+            </p>
             <Button asChild size="lg" className="mt-6">
-              <Link href="/shop">Browse Collection</Link>
+              <Link href="/shop">Shop candles</Link>
             </Button>
           </div>
         </main>
-
         <Footer />
       </div>
     )
   }
+
+  const delivery = deliveryFee(cartTotal)
+  const toFree = FREE_DELIVERY_FROM - cartTotal
+  const fullPrice = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
+  const savings = fullPrice - cartTotal
 
   return (
     <div className="flex min-h-screen flex-col">
       <Navigation />
 
       <main className="flex-1">
-        {/* Header */}
-        <section className="bg-gradient-to-b from-secondary/50 to-background py-12 md:py-16">
-          <div className="container mx-auto px-4">
-            <h1 className="font-serif text-4xl font-bold text-foreground md:text-5xl">Shopping Cart</h1>
-            <p className="mt-4 text-muted-foreground">{cart.length} items in your cart</p>
-          </div>
-        </section>
+        <div className="container mx-auto px-4 pb-24 pt-12 md:pt-16">
+          <h1 className="type-title text-foreground">Your cart</h1>
+          <p className="mt-2 text-muted-foreground">
+            {cartCount} {cartCount === 1 ? "candle" : "candles"}
+          </p>
 
-        {/* Cart Content */}
-        <section className="py-12">
-          <div className="container mx-auto px-4">
-            <div className="grid gap-8 lg:grid-cols-3">
-              {/* Cart Items */}
-              <div className="lg:col-span-2">
-                <div className="space-y-4">
-                  {cart.map((item) => (
-                    <Card key={item.product.id}>
-                      <CardContent className="p-4 md:p-6">
-                        <div className="flex gap-4">
-                          {/* Product Image */}
-                          <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-md bg-muted md:h-32 md:w-32">
-                            <Image
-                              src={item.product.image || "/placeholder.svg"}
-                              alt={item.product.name}
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
+          <div className="mt-10 grid gap-12 lg:grid-cols-[1fr_24rem] lg:gap-16">
+            {/* Lines */}
+            <ul className="divide-y divide-border self-start border-y border-border">
+              {cart.map((item) => {
+                const p = item.product
+                const offer = p.bundle_offer || p.bundleOffer
+                const unit = lineUnitPrice(item)
+                const discounted = unit < p.price
+                return (
+                  <li key={p.id} className="grid grid-cols-[5.5rem_1fr] gap-x-5 gap-y-3 py-6 sm:grid-cols-[7rem_1fr_auto]">
+                    <Link
+                      href={`/product/${p.id}`}
+                      className="relative row-span-2 aspect-square overflow-hidden rounded-lg bg-muted sm:row-span-1"
+                    >
+                      <Image src={p.image || "/placeholder.svg"} alt={p.name} fill sizes="112px" className="object-cover" />
+                    </Link>
 
-                          {/* Product Details */}
-                          <div className="flex flex-1 flex-col justify-between">
-                            <div>
-                              <div className="flex items-start justify-between gap-4">
-                                <div>
-                                  <Link
-                                    href={`/product/${item.product.id}`}
-                                    className="font-semibold text-foreground hover:text-primary"
-                                  >
-                                    {item.product.name}
-                                  </Link>
-                                  <p className="mt-1 text-sm text-muted-foreground">{item.product.scent}</p>
-                                  <p className="text-xs text-muted-foreground">{item.product.size}</p>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => removeFromCart(item.product.id)}
-                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  <span className="sr-only">Remove item</span>
-                                </Button>
-                              </div>
-                            </div>
+                    <div className="min-w-0">
+                      <h2 className="font-serif text-xl leading-snug">
+                        <Link href={`/product/${p.id}`} className="hover:text-primary">
+                          {p.name}
+                        </Link>
+                      </h2>
+                      <p className="mt-0.5 text-[0.9375rem] text-muted-foreground">
+                        {displayScent(p.scent)}
+                        {p.size ? `, ${p.size}` : ""}
+                      </p>
+                      {offer && (
+                        <p className="mt-1.5 text-[0.875rem] text-primary">
+                          {discounted
+                            ? `${offer.discount}% bundle discount applied`
+                            : `Add ${offer.quantity - item.quantity} more for ${offer.discount}% off`}
+                        </p>
+                      )}
 
-                            <div className="flex items-center justify-between">
-                              {/* Quantity Controls */}
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                                  disabled={item.quantity <= 1}
-                                  className="h-8 w-8 bg-transparent"
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </Button>
-                                <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                                  disabled={item.quantity >= item.product.stock}
-                                  className="h-8 w-8"
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </Button>
-                              </div>
-
-                              {/* Price */}
-                              <div className="text-right">
-                                <p className="font-semibold text-primary">
-                                  KES {(item.product.price * item.quantity).toLocaleString()}
-                                </p>
-                                {item.quantity > 1 && (
-                                  <p className="text-xs text-muted-foreground">
-                                    KES {item.product.price.toLocaleString()} each
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
+                      <div className="mt-4 flex items-center gap-5">
+                        <div className="flex h-10 items-center rounded-full border border-foreground/20">
+                          <button
+                            type="button"
+                            className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-secondary disabled:opacity-40"
+                            onClick={() => updateQuantity(p.id, item.quantity - 1)}
+                            disabled={item.quantity <= 1}
+                            aria-label={`Decrease quantity of ${p.name}`}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </button>
+                          <span className="w-7 text-center tabular" aria-label={`Quantity ${item.quantity}`}>
+                            {item.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-secondary disabled:opacity-40"
+                            onClick={() => updateQuantity(p.id, item.quantity + 1)}
+                            disabled={item.quantity >= p.stock}
+                            aria-label={`Increase quantity of ${p.name}`}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        <button
+                          type="button"
+                          onClick={() => removeFromCart(p.id)}
+                          className="text-[0.875rem] text-muted-foreground underline decoration-foreground/20 underline-offset-4 hover:text-destructive hover:decoration-destructive"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="col-start-2 text-left sm:col-start-3 sm:text-right">
+                      <p className="font-medium tabular">{kes(unit * item.quantity)}</p>
+                      {item.quantity > 1 && (
+                        <p className="text-[0.8125rem] text-muted-foreground tabular">
+                          {kes(unit)} each
+                          {discounted && (
+                            <>
+                              {" "}
+                              <s>{kes(p.price)}</s>
+                            </>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+
+            {/* Summary */}
+            <aside className="lg:sticky lg:top-32 lg:self-start">
+              <div className="jar-label px-7 py-7">
+                <h2 className="font-serif text-2xl">Summary</h2>
+
+                <dl className="mt-6 space-y-3 text-[0.9375rem]">
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Subtotal</dt>
+                    <dd className="tabular">{kes(cartTotal)}</dd>
+                  </div>
+                  {savings > 0 && (
+                    <div className="flex justify-between text-primary">
+                      <dt>Bundle savings</dt>
+                      <dd className="tabular">−{kes(savings)}</dd>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Delivery</dt>
+                    <dd className="tabular">{delivery === 0 ? "Free" : kes(delivery)}</dd>
+                  </div>
+                </dl>
+
+                {/* Free delivery progress: a real threshold, so it's shown as a measure */}
+                <div className="mt-5">
+                  <div className="h-[3px] w-full rounded-full bg-foreground/10" aria-hidden>
+                    <div
+                      className="h-full rounded-full bg-primary transition-[width] duration-500"
+                      style={{ width: `${Math.min(100, (cartTotal / FREE_DELIVERY_FROM) * 100)}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-[0.8125rem] text-muted-foreground">
+                    {toFree > 0
+                      ? `Add ${kes(toFree)} more for free delivery (otherwise ${kes(DELIVERY_FEE)}).`
+                      : "Your order gets free delivery."}
+                  </p>
                 </div>
 
-                {/* Clear Cart Button */}
-                <Button
-                  variant="outline"
-                  onClick={clearCart}
-                  className="mt-4 bg-transparent text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Clear Cart
+                <div className="mt-6 flex items-baseline justify-between border-t border-foreground/15 pt-5">
+                  <span className="text-[0.9375rem]">Total</span>
+                  <span className="font-serif text-[1.75rem] leading-none tabular">{kes(cartTotal + delivery)}</span>
+                </div>
+
+                <Button asChild size="lg" className="mt-6 w-full">
+                  <Link href="/checkout">Check out</Link>
                 </Button>
+                <p className="mt-3 text-center text-[0.8125rem] text-muted-foreground">
+                  Pay cash when your candles arrive.
+                </p>
               </div>
 
-              {/* Order Summary */}
-              <div className="lg:col-span-1">
-                <Card className="sticky top-24">
-                  <CardContent className="p-6">
-                    <h2 className="font-serif text-xl font-bold text-foreground">Order Summary</h2>
-
-                    <div className="mt-6 space-y-4">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Subtotal</span>
-                        <span className="font-medium text-foreground">KES {cartTotal.toLocaleString()}</span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Shipping</span>
-                        <span className="font-medium text-foreground">Calculated at checkout</span>
-                      </div>
-
-                      <div className="border-t border-border pt-4">
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-foreground">Total</span>
-                          <span className="font-serif text-2xl font-bold text-primary">
-                            KES {cartTotal.toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <Button asChild size="lg" className="mt-6 w-full">
-                      <Link href="/checkout">
-                        Proceed to Checkout
-                        <ArrowRight className="ml-2 h-5 w-5" />
-                      </Link>
-                    </Button>
-
-                    <Button asChild variant="outline" className="mt-3 w-full bg-transparent">
-                      <Link href="/shop">Continue Shopping</Link>
-                    </Button>
-
-                    {/* Trust Badges */}
-                    <div className="mt-6 space-y-3 border-t border-border pt-6">
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                          <ShoppingBag className="h-4 w-4 text-primary" />
-                        </div>
-                        <span>Secure checkout</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                          <ShoppingBag className="h-4 w-4 text-primary" />
-                        </div>
-                        <span>Free shipping on orders over KES 3000</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                          <ShoppingBag className="h-4 w-4 text-primary" />
-                        </div>
-                        <span>Handcrafted with care</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
+              <Link
+                href="/shop"
+                className="mt-5 inline-block text-[0.9375rem] underline decoration-primary/50 underline-offset-4 hover:decoration-primary"
+              >
+                Keep shopping
+              </Link>
+            </aside>
           </div>
-        </section>
+        </div>
       </main>
 
       <Footer />

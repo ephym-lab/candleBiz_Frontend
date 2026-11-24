@@ -3,12 +3,14 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Minus, Plus, Star } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Star, ShoppingCart, Eye } from "lucide-react"
+import { BurnMeter } from "@/components/jar-label"
 import type { Product } from "@/lib/types"
 import { useCart } from "@/lib/cart-context"
 import { WishlistButton } from "./wishlist-button"
+import { displayScent } from "@/lib/scents"
 
 interface QuickViewModalProps {
     product: Product
@@ -19,6 +21,8 @@ interface QuickViewModalProps {
 export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalProps) {
     const { addToCart } = useCart()
     const [quantity, setQuantity] = useState(1)
+    const burnTime = product.burnTime ?? product.burn_time
+    const soldOut = product.stock === 0
 
     const handleAddToCart = () => {
         addToCart(product, quantity)
@@ -27,73 +31,87 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-3xl">
-                <DialogHeader>
-                    <DialogTitle className="sr-only">Quick View: {product.name}</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-6 md:grid-cols-2">
-                    {/* Product Image */}
-                    <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
-                        <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
+            <DialogContent className="max-w-3xl gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-3xl">
+                <div className="grid md:grid-cols-2">
+                    <div className="relative aspect-square bg-muted md:aspect-auto">
+                        <Image
+                            src={product.image || "/placeholder.svg"}
+                            alt={product.name}
+                            fill
+                            sizes="(min-width: 768px) 384px, 100vw"
+                            className="object-cover"
+                        />
                     </div>
 
-                    {/* Product Info */}
-                    <div className="flex flex-col gap-4">
-                        <div>
-                            <h2 className="font-serif text-2xl font-bold text-foreground">{product.name}</h2>
-                            <p className="mt-1 text-sm text-muted-foreground">{product.scent}</p>
+                    <div className="flex flex-col p-7">
+                        <DialogTitle className="font-serif text-[1.875rem] font-normal leading-tight">
+                            {product.name}
+                        </DialogTitle>
+                        <DialogDescription className="mt-1 text-[0.9375rem]">
+                            {displayScent(product.scent)}
+                            {product.size ? `, ${product.size}` : ""}
+                        </DialogDescription>
+
+                        <div className="mt-5 flex items-baseline justify-between border-t border-foreground/15 pt-4">
+                            <p className="font-serif text-2xl tabular">KES {product.price.toLocaleString()}</p>
+                            {product.rating ? (
+                                <p className="flex items-center gap-1 text-[0.875rem] text-muted-foreground">
+                                    <Star className="h-4 w-4 fill-primary text-primary" aria-hidden />
+                                    <span className="tabular">{Number(product.rating).toFixed(1)}</span>
+                                    <span className="sr-only">out of 5</span>
+                                </p>
+                            ) : null}
                         </div>
 
-                        {/* Rating */}
-                        <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1">
-                                <Star className="h-4 w-4 fill-primary text-primary" />
-                                <span className="text-sm font-medium">{product.rating}</span>
-                            </div>
-                            <span className="text-sm text-muted-foreground">({product.reviews?.length || 0} reviews)</span>
-                        </div>
+                        {burnTime ? <BurnMeter hours={burnTime} className="mt-4" /> : null}
 
-                        {/* Price */}
-                        <div className="text-3xl font-bold text-primary">KES {product.price.toLocaleString()}</div>
+                        <p className="mt-5 line-clamp-4 text-[0.9375rem] leading-relaxed text-muted-foreground">
+                            {product.description}
+                        </p>
 
-                        {/* Description */}
-                        <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
+                        <p className="mt-4 text-[0.875rem] text-muted-foreground">
+                            {soldOut
+                                ? "Sold out"
+                                : product.stock < 10
+                                  ? `Only ${product.stock} left`
+                                  : "In stock"}
+                        </p>
 
-                        {/* Size & Stock */}
-                        <div className="space-y-2 text-sm">
-                            <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">Size:</span>
-                                <span className="font-medium">{product.size}</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">Stock:</span>
-                                <span className={`font-medium ${product.stock < 10 ? "text-destructive" : "text-green-600"}`}>
-                                    {product.stock} available
+                        <div className="mt-auto flex items-center gap-2 pt-6">
+                            <div className="flex h-10 items-center rounded-full border border-foreground/20">
+                                <button
+                                    type="button"
+                                    className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-secondary disabled:opacity-40"
+                                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                                    disabled={quantity <= 1}
+                                    aria-label="Decrease quantity"
+                                >
+                                    <Minus className="h-4 w-4" />
+                                </button>
+                                <span className="w-6 text-center tabular" aria-live="polite">
+                                    {quantity}
                                 </span>
+                                <button
+                                    type="button"
+                                    className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-secondary disabled:opacity-40"
+                                    onClick={() => setQuantity((q) => Math.min(product.stock || 1, q + 1))}
+                                    disabled={quantity >= (product.stock || 1)}
+                                    aria-label="Increase quantity"
+                                >
+                                    <Plus className="h-4 w-4" />
+                                </button>
                             </div>
-                            {product.burnTime && (
-                                <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">Burn Time:</span>
-                                    <span className="font-medium">{product.burnTime} hours</span>
-                                </div>
-                            )}
+                            <Button onClick={handleAddToCart} className="flex-1" disabled={soldOut}>
+                                {soldOut ? "Sold out" : "Add to cart"}
+                            </Button>
+                            <WishlistButton product={product} variant="outline" />
                         </div>
 
-                        {/* Actions */}
-                        <div className="flex gap-2 mt-auto">
-                            <Button onClick={handleAddToCart} className="flex-1" disabled={product.stock === 0}>
-                                <ShoppingCart className="mr-2 h-4 w-4" />
-                                Add to Cart
-                            </Button>
-                            <WishlistButton product={product} size="default" />
-                        </div>
-
-                        {/* View Full Details Link */}
-                        <Link href={`/product/${product.id}`} className="text-center">
-                            <Button variant="outline" className="w-full">
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Full Details
-                            </Button>
+                        <Link
+                            href={`/product/${product.id}`}
+                            className="mt-4 text-center text-[0.9375rem] text-foreground underline decoration-primary/50 underline-offset-4 hover:decoration-primary"
+                        >
+                            See full details
                         </Link>
                     </div>
                 </div>
@@ -111,19 +129,17 @@ export function QuickViewButton({ product }: QuickViewButtonProps) {
 
     return (
         <>
-            <Button
-                variant="secondary"
-                size="sm"
+            <button
+                type="button"
                 onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
                     setOpen(true)
                 }}
-                className="w-full"
+                className="text-[0.875rem] text-muted-foreground underline decoration-foreground/20 underline-offset-4 transition-colors hover:text-foreground hover:decoration-primary"
             >
-                <Eye className="mr-2 h-4 w-4" />
-                Quick View
-            </Button>
+                Quick look
+            </button>
             <QuickViewModal product={product} open={open} onOpenChange={setOpen} />
         </>
     )

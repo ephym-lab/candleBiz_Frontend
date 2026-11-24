@@ -3,6 +3,13 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import type { CartItem, Product } from "./types"
 import { toast } from "sonner"
+import { bundleUnitPrice } from "./pricing"
+
+/** What one unit of this cart line costs, after any bundle discount it qualifies for. */
+export function lineUnitPrice(item: CartItem): number {
+  const offer = item.product.bundle_offer || item.product.bundleOffer
+  return bundleUnitPrice(item.product.price, offer, item.quantity)
+}
 
 interface CartContextType {
   cart: CartItem[]
@@ -47,7 +54,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const existingItem = prevCart.find((item) => item.product.id === product.id)
 
       if (existingItem) {
-        toast.success(`Updated ${product.name} quantity in cart`)
+        toast.success(`${product.name}: quantity updated`)
         return prevCart.map((item) =>
           item.product.id === product.id ? { ...item, quantity: item.quantity + quantity } : item,
         )
@@ -79,15 +86,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCart([])
   }
 
-  const cartTotal = cart.reduce((total, item) => {
-    const product = item.product
-    let price = product.price
-    const bundleOffer = product.bundle_offer || product.bundleOffer
-    if (bundleOffer && item.quantity >= bundleOffer.quantity) {
-      price = Math.round(product.price * (1 - bundleOffer.discount / 100))
-    }
-    return total + price * item.quantity
-  }, 0)
+  const cartTotal = cart.reduce((total, item) => total + lineUnitPrice(item) * item.quantity, 0)
 
   const cartCount = cart.reduce((count, item) => count + item.quantity, 0)
 

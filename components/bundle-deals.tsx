@@ -3,175 +3,110 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Star, ShoppingCart, AlertCircle } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useCart } from "@/lib/cart-context"
 import { getBundleProducts } from "@/lib/api/services/products"
 import type { Product } from "@/lib/api/types"
 
+function bundlePrices(product: Product) {
+    const offer = product.bundle_offer!
+    const full = product.price * offer.quantity
+    const discounted = Math.round(full * (1 - offer.discount / 100))
+    return { full, discounted }
+}
+
+/** Bundles are a list of offers, read top to bottom: what you get, what it costs, one button. */
 export function BundleDeals() {
     const { addToCart } = useCart()
     const [bundleProducts, setBundleProducts] = useState<Product[]>([])
     const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+    const [failed, setFailed] = useState(false)
 
     useEffect(() => {
-        async function fetchBundleProducts() {
-            try {
-                setLoading(true)
-                setError(null)
-                const data = await getBundleProducts()
-                setBundleProducts(data)
-            } catch (err) {
-                console.error('Failed to fetch bundle products:', err)
-                setError('Failed to load bundle deals. Please try again later.')
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        fetchBundleProducts()
+        getBundleProducts()
+            .then((data) => setBundleProducts(data.filter((p) => p.bundle_offer)))
+            .catch((err) => {
+                console.error("Failed to fetch bundle products:", err)
+                setFailed(true)
+            })
+            .finally(() => setLoading(false))
     }, [])
 
-    const handleAddBundle = (product: Product) => {
-        if (product.bundle_offer) {
-            addToCart(product, product.bundle_offer.quantity)
-        }
-    }
-
-    // Don't render if no products or still loading
-    if (loading) {
-        return (
-            <section className="py-16 bg-gradient-to-b from-secondary/30 to-background">
-                <div className="container mx-auto px-4">
-                    <div className="text-center mb-12">
-                        <Badge className="mb-4" variant="secondary">
-                            Special Offers
-                        </Badge>
-                        <h2 className="font-serif text-3xl font-bold text-foreground md:text-4xl">
-                            Bundle Deals
-                        </h2>
-                        <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
-                            Save more when you buy in bundles. Perfect for gifts or stocking up your favorites!
-                        </p>
-                    </div>
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
-                        {[1, 2, 3].map((i) => (
-                            <Card key={i} className="overflow-hidden border-2 border-primary/20">
-                                <div className="relative aspect-square bg-muted animate-pulse" />
-                                <CardContent className="p-6 space-y-3">
-                                    <div className="h-6 bg-muted animate-pulse rounded" />
-                                    <div className="h-4 bg-muted animate-pulse rounded w-2/3" />
-                                    <div className="h-4 bg-muted animate-pulse rounded w-1/2" />
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
-            </section>
-        )
-    }
-
-    if (error) {
-        return (
-            <section className="py-16 bg-gradient-to-b from-secondary/30 to-background">
-                <div className="container mx-auto px-4">
-                    <div className="text-center max-w-md mx-auto">
-                        <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-                        <h3 className="font-semibold text-lg mb-2">Unable to Load Bundle Deals</h3>
-                        <p className="text-muted-foreground">{error}</p>
-                    </div>
-                </div>
-            </section>
-        )
-    }
-
-    if (bundleProducts.length === 0) {
-        return null
-    }
+    if (failed || (!loading && bundleProducts.length === 0)) return null
 
     return (
-        <section className="py-16 bg-gradient-to-b from-secondary/30 to-background">
-            <div className="container mx-auto px-4">
-                <div className="text-center mb-12">
-                    <Badge className="mb-4" variant="secondary">
-                        Special Offers
-                    </Badge>
-                    <h2 className="font-serif text-3xl font-bold text-foreground md:text-4xl">
-                        Bundle Deals
-                    </h2>
-                    <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
-                        Save more when you buy in bundles. Perfect for gifts or stocking up your favorites!
+        <section className="bg-secondary/40 py-20 md:py-28">
+            <div className="container mx-auto grid gap-12 px-4 lg:grid-cols-12">
+                <div className="lg:col-span-4">
+                    <h2 className="type-title text-foreground">Buy a few, pay less</h2>
+                    <p className="mt-4 max-w-[36ch] text-muted-foreground">
+                        Set a scent in every room or put a gift aside for later. Bundles are priced below buying the same
+                        candles one at a time.
                     </p>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
-                    {bundleProducts.map((product) => (
-                        <Card key={product.id} className="overflow-hidden border-2 border-primary/20 hover:border-primary/50 transition-all hover:shadow-lg">
-                            <div className="relative">
-                                <div className="relative aspect-square overflow-hidden bg-muted">
-                                    <Image
-                                        src={product.image || "/placeholder.svg"}
-                                        alt={product.name}
-                                        fill
-                                        className="object-cover"
-                                    />
-                                </div>
-                                {product.bundle_offer && (
-                                    <div className="absolute top-4 right-4">
-                                        <Badge className="bg-red-500 text-white font-bold text-sm px-3 py-1">
-                                            Save {product.bundle_offer.discount}%
-                                        </Badge>
-                                    </div>
-                                )}
-                            </div>
+                <ul className="divide-y divide-foreground/15 border-y border-foreground/15 lg:col-span-8">
+                    {loading
+                        ? [0, 1, 2].map((i) => (
+                              <li key={i} className="flex items-center gap-5 py-6">
+                                  <Skeleton className="h-24 w-24 shrink-0 rounded-lg" />
+                                  <div className="flex-1 space-y-2">
+                                      <Skeleton className="h-5 w-1/2" />
+                                      <Skeleton className="h-4 w-1/3" />
+                                  </div>
+                              </li>
+                          ))
+                        : bundleProducts.map((product) => {
+                              const offer = product.bundle_offer!
+                              const { full, discounted } = bundlePrices(product)
+                              return (
+                                  <li
+                                      key={product.id}
+                                      className="grid grid-cols-[5rem_1fr] items-center gap-x-5 gap-y-4 py-6 sm:grid-cols-[6rem_1fr_auto]"
+                                  >
+                                      <Link
+                                          href={`/product/${product.id}`}
+                                          className="relative block aspect-square overflow-hidden rounded-lg bg-muted"
+                                      >
+                                          <Image
+                                              src={product.image || "/placeholder.svg"}
+                                              alt={product.name}
+                                              fill
+                                              sizes="96px"
+                                              className="object-cover"
+                                          />
+                                      </Link>
 
-                            <CardContent className="p-6">
-                                <Link href={`/product/${product.id}`}>
-                                    <h3 className="font-semibold text-lg text-foreground hover:text-primary transition-colors">
-                                        {product.name}
-                                    </h3>
-                                </Link>
-                                <p className="text-sm text-muted-foreground mt-1">{product.scent}</p>
+                                      <div className="min-w-0">
+                                          <h3 className="font-serif text-xl text-foreground">
+                                              <Link href={`/product/${product.id}`} className="hover:text-primary">
+                                                  {offer.quantity} × {product.name}
+                                              </Link>
+                                          </h3>
+                                          <p className="mt-1 text-[0.9375rem] text-muted-foreground">
+                                              {offer.description}
+                                          </p>
+                                          <p className="mt-2 flex flex-wrap items-baseline gap-x-3 text-[0.9375rem] tabular">
+                                              <span className="font-medium text-foreground">
+                                                  KES {discounted.toLocaleString()}
+                                              </span>
+                                              <s className="text-muted-foreground">KES {full.toLocaleString()}</s>
+                                              <span className="text-primary">Save {offer.discount}%</span>
+                                          </p>
+                                      </div>
 
-                                <div className="flex items-center gap-1 mt-2">
-                                    <Star className="h-4 w-4 fill-primary text-primary" />
-                                    <span className="text-sm font-medium">{product.rating}</span>
-                                </div>
-
-                                {product.bundle_offer && (
-                                    <div className="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
-                                        <p className="text-sm font-semibold text-primary mb-1">
-                                            {product.bundle_offer.description}
-                                        </p>
-                                        <div className="flex items-baseline gap-2">
-                                            <span className="text-lg font-bold text-foreground">
-                                                KES {(product.price * product.bundle_offer.quantity * (1 - product.bundle_offer.discount / 100)).toLocaleString()}
-                                            </span>
-                                            <span className="text-sm text-muted-foreground line-through">
-                                                KES {(product.price * product.bundle_offer.quantity).toLocaleString()}
-                                            </span>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            {product.bundle_offer.quantity} candles
-                                        </p>
-                                    </div>
-                                )}
-
-                                <Button
-                                    onClick={() => handleAddBundle(product)}
-                                    className="w-full mt-4"
-                                    size="lg"
-                                >
-                                    <ShoppingCart className="mr-2 h-4 w-4" />
-                                    Add Bundle to Cart
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
+                                      <Button
+                                          variant="outline"
+                                          onClick={() => addToCart(product as any, offer.quantity)}
+                                          className="col-span-2 sm:col-span-1"
+                                      >
+                                          Add {offer.quantity} to cart
+                                      </Button>
+                                  </li>
+                              )
+                          })}
+                </ul>
             </div>
         </section>
     )

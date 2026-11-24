@@ -1,186 +1,231 @@
 import Link from "next/link"
 import Image from "next/image"
+import { Phone, Flame } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
-import { Star, Sparkles, Leaf, Heart } from "lucide-react"
 import { TestimonialsSection } from "@/components/testimonials-section"
 import { NewsletterSignup } from "@/components/newsletter-signup"
 import { TrustBadges } from "@/components/trust-badges"
 import { BundleDeals } from "@/components/bundle-deals"
+import { ShopByScent } from "@/components/shop-by-scent"
+import { JarLabel } from "@/components/jar-label"
+import { ProductCard } from "@/components/product-card"
 import { getTopSellingProducts } from "@/lib/api/services/products"
 import type { TopSellingProduct } from "@/lib/api/types"
+import { BRAND, allScents, scentFamilies } from "@/lib/scents"
+import { careTips as tips } from "@/lib/care-tips"
+
 
 export default async function HomePage() {
-  // Fetch top-selling products for featured section
   let featuredProducts: TopSellingProduct[] = []
   try {
     featuredProducts = await getTopSellingProducts(4)
   } catch (error) {
     console.error("Failed to fetch featured products:", error)
-    // Fallback to empty array if API fails
     featuredProducts = []
   }
+
+  const heroProduct = featuredProducts[0]
+  const labelShadow = "shadow-[0_24px_48px_-28px_color-mix(in_oklch,var(--foreground)_55%,transparent)]"
 
   return (
     <div className="flex min-h-screen flex-col">
       <Navigation />
 
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="relative overflow-hidden bg-gradient-to-b from-secondary/50 to-background py-20 md:py-32">
-          <div className="container mx-auto px-4">
-            <div className="grid items-center gap-12 lg:grid-cols-2">
-              <div className="space-y-6">
-                <h1 className="font-serif text-4xl font-bold leading-tight text-balance text-foreground md:text-5xl lg:text-6xl">
-                  Illuminate Your Space with Handcrafted Elegance
-                </h1>
-                <p className="text-lg text-muted-foreground leading-relaxed text-pretty">
-                  Discover our collection of handmade, eco-friendly soy wax candles. Each candle is carefully crafted
-                  with natural essential oils to create the perfect ambiance for your home.
-                </p>
-                <div className="flex flex-wrap gap-4">
-                  <Button asChild size="lg" className="font-semibold">
-                    <Link href="/shop">Shop Collection</Link>
-                  </Button>
-                  <Button asChild variant="outline" size="lg">
-                    <Link href="/about">Our Story</Link>
-                  </Button>
-                </div>
+        {/* Hero */}
+        <section className="bg-secondary/40">
+          <div className="container mx-auto grid items-center gap-14 px-4 pb-24 pt-14 md:pt-20 lg:grid-cols-2 lg:gap-16 lg:pb-32">
+            <div>
+              <h1 className="type-display max-w-[14ch] text-foreground">Handmade, hand-poured scented candles</h1>
+              <p className="type-lede mt-7 max-w-[46ch] text-muted-foreground">
+                Made with 100% natural soy wax in ten scents: floral, gourmand, woodsy and fruity. Order online, or
+                call us and we&apos;ll help you choose.
+              </p>
+              <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-4">
+                <Button asChild size="lg">
+                  <Link href="/shop">Shop candles</Link>
+                </Button>
+                <Button asChild variant="link" className="text-base">
+                  <a href={BRAND.phoneHref}>Call {BRAND.phone}</a>
+                </Button>
               </div>
 
-              <div className="relative aspect-square overflow-hidden rounded-lg">
+              <dl className="mt-14 grid max-w-md grid-cols-3 gap-6 border-t border-foreground/15 pt-6">
+                {[
+                  ["100%", "natural soy wax"],
+                  [String(allScents.length), "scents to choose from"],
+                  [String(scentFamilies.length), "scent families"],
+                ].map(([value, label]) => (
+                  <div key={label}>
+                    <dt className="sr-only">{label}</dt>
+                    <dd>
+                      <span className="block font-serif text-[1.75rem] leading-none text-foreground tabular">{value}</span>
+                      <span className="mt-1.5 block text-[0.875rem] leading-snug text-muted-foreground">{label}</span>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+
+            <div className="relative">
+              <div className="relative aspect-square overflow-hidden rounded-2xl bg-muted">
                 <Image
-                  src="/hero-candle-display.jpg"
-                  alt="Beautiful display of handmade scented candles"
+                  src="/photos/web/candle1.jpg"
+                  alt="A lit soy candle in a faceted cut-glass jar"
                   fill
+                  sizes="(min-width: 1024px) 50vw, 100vw"
                   className="object-cover"
                   priority
                 />
               </div>
+
+              <div className="animate-glow-in relative z-10 mx-4 -mt-20 sm:absolute sm:bottom-8 sm:-left-8 sm:mx-0 sm:mt-0 sm:w-[20rem] lg:-left-12">
+                {heroProduct ? (
+                  <JarLabel
+                    as="p"
+                    name={heroProduct.name}
+                    scent={heroProduct.scent}
+                    size={heroProduct.size}
+                    burnTime={heroProduct.burn_time}
+                    price={heroProduct.price}
+                    className={labelShadow}
+                  >
+                    <Link
+                      href={`/product/${heroProduct.id}`}
+                      className="mt-4 inline-block text-[0.9375rem] text-foreground underline decoration-primary/50 underline-offset-4 hover:decoration-primary"
+                    >
+                      View this candle
+                    </Link>
+                  </JarLabel>
+                ) : (
+                  <JarLabel as="p" name="Ten scents" className={labelShadow}>
+                    <p className="mt-3 border-t border-foreground/15 pt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
+                      {allScents.join(", ")}
+                    </p>
+                  </JarLabel>
+                )}
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Features Section */}
-        <section className="py-16 md:py-24">
-          <div className="container mx-auto px-4">
-            <div className="grid gap-8 md:grid-cols-3">
-              <Card className="border-border/50">
-                <CardContent className="flex flex-col items-center gap-4 p-6 text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                    <Leaf className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="font-serif text-xl font-semibold text-foreground">100% Natural</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Made with pure soy wax and natural essential oils, free from harmful chemicals
-                  </p>
-                </CardContent>
-              </Card>
+        <TrustBadges />
 
-              <Card className="border-border/50">
-                <CardContent className="flex flex-col items-center gap-4 p-6 text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                    <Heart className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="font-serif text-xl font-semibold text-foreground">Handcrafted</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Each candle is lovingly made by hand in small batches for premium quality
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/50">
-                <CardContent className="flex flex-col items-center gap-4 p-6 text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                    <Sparkles className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="font-serif text-xl font-semibold text-foreground">Long Lasting</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Our candles provide 40+ hours of clean, even burn time for lasting enjoyment
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
-
-        {/* Featured Products Section */}
-        <section className="bg-muted/30 py-16 md:py-24">
-          <div className="container mx-auto px-4">
-            <div className="mb-12 text-center">
-              <h2 className="font-serif text-3xl font-bold text-foreground md:text-4xl">Featured Collection</h2>
-              <p className="mt-4 text-muted-foreground">Discover our most popular handcrafted candles</p>
+        {featuredProducts.length > 0 && (
+          <section className="container mx-auto px-4 pt-20 md:pt-28">
+            <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 className="type-title text-foreground">Most loved right now</h2>
+                <p className="mt-3 max-w-[48ch] text-muted-foreground">The candles customers order most.</p>
+              </div>
+              <Button asChild variant="link" className="text-base">
+                <Link href="/shop">See all candles</Link>
+              </Button>
             </div>
 
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
               {featuredProducts.map((product) => (
-                <Link key={product.id} href={`/product/${product.id}`}>
-                  <Card className="group overflow-hidden transition-shadow hover:shadow-lg">
-                    <div className="relative aspect-square overflow-hidden bg-muted">
-                      <Image
-                        src={product.image || "/placeholder.svg"}
-                        alt={product.name}
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                    </div>
-                    <CardContent className="p-4">
-                      <h3 className="font-semibold text-foreground text-balance">{product.name}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">{product.scent}</p>
-                      <div className="mt-2 flex items-center justify-between">
-                        <span className="font-semibold text-primary">KES {product.price.toLocaleString()}</span>
-                        <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 fill-primary text-primary" />
-                          <span className="text-sm text-muted-foreground">{product.rating}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                <ProductCard key={product.id} product={product} showActions={false} />
               ))}
             </div>
+          </section>
+        )}
 
-            <div className="mt-12 text-center">
+        <ShopByScent />
+
+        {/* Real candles from recent batches */}
+        <section className="container mx-auto px-4 pb-20 md:pb-28">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+            <h2 className="type-title text-foreground">Recently poured</h2>
+            <p className="max-w-[44ch] text-muted-foreground">Candles from recent batches, photographed as they are.</p>
+          </div>
+          <ul className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-5">
+            {[
+              { src: "/photos/web/candle3.jpg", alt: "A pink two-wick soy candle topped with wax crystals" },
+              { src: "/photos/web/candle4.jpg", alt: "A red soy candle seen from above in a cut-glass jar" },
+              { src: "/photos/web/candle5.jpg", alt: "An orange layered soy candle in a glass tumbler" },
+            ].map((photo, i) => (
+              <li
+                key={photo.src}
+                className={i === 2 ? "col-span-2 md:col-span-1" : undefined}
+              >
+                <div className={`relative overflow-hidden rounded-xl bg-muted ${i === 2 ? "aspect-[2/1] md:aspect-[4/5]" : "aspect-[4/5]"}`}>
+                  <Image
+                    src={photo.src}
+                    alt={photo.alt}
+                    fill
+                    sizes="(min-width: 768px) 33vw, 50vw"
+                    className="object-cover"
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* Candle care tips, under the brand's own line */}
+        <section className="bg-foreground text-background">
+          <div className="container mx-auto grid gap-14 px-4 py-20 md:py-28 lg:grid-cols-2 lg:gap-20">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl lg:aspect-auto lg:min-h-[32rem]">
+              <Image
+                src="/photos/web/candle2.jpg"
+                alt="An orange soy candle in a tilted glass resting on a green candle"
+                fill
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                className="object-cover"
+              />
+            </div>
+            <div className="flex flex-col justify-center">
+              <h2 className="type-title max-w-[18ch]">{BRAND.tagline}</h2>
+              <p className="mt-4 max-w-[48ch] text-background/70">
+                A few habits that help every candle burn cleanly, smell stronger and last longer.
+              </p>
+              <ul className="mt-10">
+                {tips.map((tip) => (
+                  <li key={tip.title} className="grid grid-cols-[1.5rem_1fr] gap-3 border-t border-background/15 py-5">
+                    <Flame className="mt-1 h-4 w-4 text-background/50" strokeWidth={1.5} aria-hidden />
+                    <div>
+                      <h3 className="font-serif text-xl">{tip.title}</h3>
+                      <p className="mt-1.5 max-w-[52ch] text-[0.9375rem] leading-relaxed text-background/70">
+                        {tip.body}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <BundleDeals />
+        <TestimonialsSection />
+
+        {/* Order by phone */}
+        <section className="container mx-auto px-4 py-20 md:py-28">
+          <div className="grid items-center gap-10 rounded-2xl border border-border bg-card p-8 md:grid-cols-[1.2fr_1fr] md:p-14">
+            <div>
+              <h2 className="type-title max-w-[20ch] text-foreground">Rather order by phone?</h2>
+              <p className="mt-4 max-w-[50ch] text-muted-foreground">
+                Call us to place an order, ask about a scent or put together a gift.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row md:justify-end">
               <Button asChild size="lg">
-                <Link href="/shop">View All Candles</Link>
+                <a href={BRAND.phoneHref}>
+                  <Phone aria-hidden />
+                  Call {BRAND.phone}
+                </a>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link href="/contact">Send a message</Link>
               </Button>
             </div>
           </div>
         </section>
 
-        {/* Trust Badges */}
-        <TrustBadges />
-
-        {/* Bundle Deals */}
-        <BundleDeals />
-
-        {/* Testimonials */}
-        <TestimonialsSection />
-
-        {/* Newsletter Signup */}
         <NewsletterSignup />
-
-        {/* CTA Section */}
-        <section className="py-16 md:py-24">
-          <div className="container mx-auto px-4">
-            <Card className="overflow-hidden border-primary/20 bg-gradient-to-r from-secondary/30 to-accent/30">
-              <CardContent className="p-8 text-center md:p-12">
-                <h2 className="font-serif text-3xl font-bold text-foreground md:text-4xl text-balance">
-                  Transform Your Space Today
-                </h2>
-                <p className="mx-auto mt-4 max-w-2xl text-muted-foreground leading-relaxed">
-                  Experience the perfect blend of fragrance and ambiance. Our handmade candles make wonderful gifts or
-                  treats for yourself.
-                </p>
-                <Button asChild size="lg" className="mt-8">
-                  <Link href="/shop">Start Shopping</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
       </main>
 
       <Footer />

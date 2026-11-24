@@ -29,9 +29,11 @@ import { toast } from "sonner"
 interface ReviewFormProps {
     productId: string
     productName: string
+    /** When set, renders a text link that opens the form. */
+    triggerLabel?: string
 }
 
-export function ReviewForm({ productId, productName }: ReviewFormProps) {
+export function ReviewForm({ productId, productName, triggerLabel }: ReviewFormProps) {
     const [isPromptOpen, setIsPromptOpen] = useState(false)
     const [isFormOpen, setIsFormOpen] = useState(false)
     const [rating, setRating] = useState(0)
@@ -56,17 +58,17 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
         e.preventDefault()
 
         if (rating === 0) {
-            toast.error("Please select a rating")
+            toast.error("Choose a star rating.")
             return
         }
 
         if (!author.trim()) {
-            toast.error("Please enter your name")
+            toast.error("Enter your name.")
             return
         }
 
         if (!comment.trim()) {
-            toast.error("Please write a review")
+            toast.error("Write a few words about the candle.")
             return
         }
 
@@ -81,7 +83,7 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
                 comment: comment.trim(),
             })
 
-            toast.success("Thank you for your review!")
+            toast.success("Review sent. It will appear once it\'s approved.")
 
             // Reset form
             setRating(0)
@@ -90,10 +92,9 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
             setComment("")
             setIsFormOpen(false)
 
-            // Refresh the page to show new review
-            window.location.reload()
+            // New reviews only appear after an admin verifies them, so no reload is needed.
         } catch (error) {
-            toast.error("Failed to submit review. Please try again.")
+            toast.error("Your review couldn\'t be sent. Try again.")
         } finally {
             setIsSubmitting(false)
         }
@@ -101,12 +102,15 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
 
     return (
         <>
-            {/* Manual Trigger Button */}
-            <div className="flex justify-center">
-                {/* <Button onClick={() => setIsFormOpen(true)} variant="outline" size="lg" className="w-full md:w-auto min-w-[200px]">
-                    Write a Review
-                </Button> */}
-            </div>
+            {triggerLabel && (
+                <button
+                    type="button"
+                    onClick={() => setIsFormOpen(true)}
+                    className="text-[0.9375rem] text-foreground underline decoration-primary/50 underline-offset-4 hover:decoration-primary"
+                >
+                    {triggerLabel}
+                </button>
+            )}
 
             {/* Auto Prompt */}
             <AlertDialog open={isPromptOpen} onOpenChange={setIsPromptOpen}>
@@ -138,15 +142,15 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                 <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
-                        <DialogTitle>Write Your Review</DialogTitle>
+                        <DialogTitle className="font-serif text-2xl font-normal">Review {productName}</DialogTitle>
                         <DialogDescription>
-                            Share your experience with {productName}
+                            How did it smell, and how did it burn?
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-4 pt-4">
                         {/* Rating */}
                         <div className="space-y-2">
-                            <Label>Your Rating *</Label>
+                            <Label>Your rating</Label>
                             <div className="flex gap-1">
                                 {[1, 2, 3, 4, 5].map((star) => (
                                     <button
@@ -155,7 +159,9 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
                                         onClick={() => setRating(star)}
                                         onMouseEnter={() => setHoveredRating(star)}
                                         onMouseLeave={() => setHoveredRating(0)}
-                                        className="transition-transform hover:scale-110"
+                                        className="rounded-sm"
+                                        aria-label={`${star} star${star > 1 ? "s" : ""}`}
+                                        aria-pressed={rating === star}
                                     >
                                         <Star
                                             className={`h-8 w-8 ${star <= (hoveredRating || rating)
@@ -170,7 +176,7 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
 
                         {/* Name */}
                         <div className="space-y-2">
-                            <Label htmlFor="author">Your Name *</Label>
+                            <Label htmlFor="author">Your name</Label>
                             <Input
                                 id="author"
                                 value={author}
@@ -183,7 +189,7 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
 
                         {/* Email (Optional) */}
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email (Optional)</Label>
+                            <Label htmlFor="email">Email (optional)</Label>
                             <Input
                                 id="email"
                                 type="email"
@@ -193,13 +199,13 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
                                 disabled={isSubmitting}
                             />
                             <p className="text-xs text-muted-foreground">
-                                Provide your email to get verified purchase badge
+                                Use the email you ordered with to get a verified purchase badge.
                             </p>
                         </div>
 
                         {/* Comment */}
                         <div className="space-y-2">
-                            <Label htmlFor="comment">Your Review *</Label>
+                            <Label htmlFor="comment">Your review</Label>
                             <Textarea
                                 id="comment"
                                 value={comment}
@@ -231,7 +237,7 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
                                 Cancel
                             </Button>
                             <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting ? "Submitting..." : "Submit Review"}
+                                {isSubmitting ? "Sending…" : "Send review"}
                             </Button>
                         </div>
                     </form>

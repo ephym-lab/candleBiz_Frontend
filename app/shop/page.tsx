@@ -1,365 +1,377 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
-import Link from "next/link"
-import Image from "next/image"
+import { Suspense, useEffect, useMemo, useState } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { Search, X, Phone } from "lucide-react"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { scents, sizes, priceRanges } from "@/lib/products"
-import { Star, Filter, Loader2, Search, X } from "lucide-react"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { WishlistButton } from "@/components/wishlist-button"
-import { QuickViewButton } from "@/components/quick-view-modal"
-import { Breadcrumbs } from "@/components/breadcrumbs"
+import { ProductCard } from "@/components/product-card"
+import { ProductGridSkeleton } from "@/components/skeletons/product-skeleton"
+import { getProducts } from "@/lib/api/services/products"
 import type { Product } from "@/lib/api/types"
+import { BRAND, familyOf, scentFamilies, type ScentFamily } from "@/lib/scents"
+import { cn } from "@/lib/utils"
 
-export default function ShopPage() {
+const priceRanges = [
+  { id: "all", label: "Any price", min: 0, max: Infinity },
+  { id: "under-1000", label: "Under KES 1,000", min: 0, max: 999 },
+  { id: "1000-1500", label: "KES 1,000 to 1,500", min: 1000, max: 1500 },
+  { id: "over-1500", label: "Over KES 1,500", min: 1501, max: Infinity },
+]
+
+const sortOptions = [
+  { id: "featured", label: "Featured" },
+  { id: "price-low", label: "Price, low to high" },
+  { id: "price-high", label: "Price, high to low" },
+  { id: "rating", label: "Highest rated" },
+  { id: "name", label: "Name, A to Z" },
+]
+
+const same = (a?: string | null, b?: string | null) => (a ?? "").trim().toLowerCase() === (b ?? "").trim().toLowerCase()
+
+function Chip({
+  active,
+  onClick,
+  children,
+  count,
+}: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+  count?: number
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "inline-flex h-10 items-center gap-2 rounded-full border px-4 text-[0.9375rem] transition-colors",
+        active
+          ? "border-foreground bg-foreground text-background"
+          : "border-foreground/20 text-foreground hover:border-foreground/50",
+      )}
+    >
+      {children}
+      {count !== undefined && (
+        <span className={cn("text-[0.8125rem] tabular", active ? "text-background/70" : "text-muted-foreground")}>
+          {count}
+        </span>
+      )}
+    </button>
+  )
+}
+
+function ShopContent() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [isSearching, setIsSearching] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
 
-  const [selectedScent, setSelectedScent] = useState("All")
-  const [selectedSize, setSelectedSize] = useState("All")
-  const [selectedPriceRange, setSelectedPriceRange] = useState("All")
+  const [query, setQuery] = useState("")
+  const [size, setSize] = useState("all")
+  const [price, setPrice] = useState("all")
   const [sortBy, setSortBy] = useState("featured")
 
-  // Fetch products from API
-  useEffect(() => {
-    async function fetchProducts() {
-      try {
-        setIsLoading(true)
-        const { getProducts } = await import("@/lib/api/services/products")
-        const { searchProducts } = await import("@/lib/api/services/products")
+  // Family and scent live in the URL so links from the home page and footer land filtered.
+  const scentParam = searchParams.get("scent")
+  const family: ScentFamily | undefined =
+    scentFamilies.find((f) => f.id === searchParams.get("family")) ?? familyOf(scentParam)
+  const scent = scentParam && family?.scents.some((s) => same(s, scentParam)) ? scentParam : null
 
-        let response
-
-        // If there's a search query, use search endpoint
-        if (searchQuery.trim()) {
-          setIsSearching(true)
-          response = await searchProducts(searchQuery.trim())
-        } else {
-          setIsSearching(false)
-          // Build filters for regular product fetch
-          const filters: any = {}
-          if (selectedScent !== "All") filters.scent = selectedScent.toLowerCase()
-          if (selectedSize !== "All") filters.size = selectedSize.toLowerCase()
-          if (selectedPriceRange !== "All") {
-            const range = priceRanges.find((r) => r.label === selectedPriceRange)
-            if (range) {
-              filters.min_price = range.min
-              filters.max_price = range.max === Infinity ? undefined : range.max
-            }
-          }
-
-          response = await getProducts(filters)
-        }
-
-        setProducts(response.products || [])
-        setError(null)
-      } catch (err) {
-        console.error("Failed to fetch products:", err)
-        setError("Failed to load products. Please try again.")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    // Debounce search
-    const timeoutId = setTimeout(() => {
-      fetchProducts()
-    }, 300)
-
-    return () => clearTimeout(timeoutId)
-  }, [selectedScent, selectedSize, selectedPriceRange, searchQuery])
-
-  const filteredProducts = useMemo(() => {
-    let filtered = [...products]
-
-    // Sort products
-    switch (sortBy) {
-      case "price-low":
-        filtered.sort((a, b) => a.price - b.price)
-        break
-      case "price-high":
-        filtered.sort((a, b) => b.price - a.price)
-        break
-      case "rating":
-        filtered.sort((a, b) => b.rating - a.rating)
-        break
-      case "name":
-        filtered.sort((a, b) => a.name.localeCompare(b.name))
-        break
-      default:
-        // Keep original order for "featured"
-        break
-    }
-
-    return filtered
-  }, [products, sortBy])
-
-  const clearFilters = () => {
-    setSelectedScent("All")
-    setSelectedSize("All")
-    setSelectedPriceRange("All")
+  const setUrl = (next: { family?: string | null; scent?: string | null }) => {
+    const params = new URLSearchParams()
+    if (next.family) params.set("family", next.family)
+    if (next.scent) params.set("scent", next.scent)
+    const qs = params.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
   }
 
-  const hasActiveFilters = selectedScent !== "All" || selectedSize !== "All" || selectedPriceRange !== "All"
+  useEffect(() => {
+    let cancelled = false
+    setIsLoading(true)
+    getProducts({ limit: 100 })
+      .then((res) => {
+        if (cancelled) return
+        setProducts(res.products ?? [])
+        setError(null)
+      })
+      .catch((err) => {
+        console.error("Failed to fetch products:", err)
+        if (!cancelled) setError("The candles couldn't be loaded. Check your connection and try again.")
+      })
+      .finally(() => !cancelled && setIsLoading(false))
+    return () => {
+      cancelled = true
+    }
+  }, [reloadKey])
 
-  const FilterSection = () => (
-    <div className="space-y-6">
-      <div>
-        <h3 className="mb-3 font-semibold text-foreground">Scent</h3>
-        <div className="space-y-2">
-          {scents.map((scent) => (
-            <button
-              key={scent}
-              onClick={() => setSelectedScent(scent)}
-              className={`block w-full rounded-md px-3 py-2 text-left text-sm transition-colors ${selectedScent === scent
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted/50 text-foreground hover:bg-muted"
-                }`}
-            >
-              {scent}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <h3 className="mb-3 font-semibold text-foreground">Size</h3>
-        <div className="space-y-2">
-          {sizes.map((size) => (
-            <button
-              key={size}
-              onClick={() => setSelectedSize(size)}
-              className={`block w-full rounded-md px-3 py-2 text-left text-sm transition-colors ${selectedSize === size
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted/50 text-foreground hover:bg-muted"
-                }`}
-            >
-              {size}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <h3 className="mb-3 font-semibold text-foreground">Price Range</h3>
-        <div className="space-y-2">
-          {priceRanges.map((range) => (
-            <button
-              key={range.label}
-              onClick={() => setSelectedPriceRange(range.label)}
-              className={`block w-full rounded-md px-3 py-2 text-left text-sm transition-colors ${selectedPriceRange === range.label
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted/50 text-foreground hover:bg-muted"
-                }`}
-            >
-              {range.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {hasActiveFilters && (
-        <Button variant="outline" onClick={clearFilters} className="w-full bg-transparent">
-          Clear Filters
-        </Button>
-      )}
-    </div>
+  const sizes = useMemo(
+    () => Array.from(new Set(products.map((p) => p.size).filter(Boolean))).sort(),
+    [products],
   )
 
+  const familyCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const p of products) {
+      const f = familyOf(p.scent)
+      if (f) counts[f.id] = (counts[f.id] ?? 0) + 1
+    }
+    return counts
+  }, [products])
+
+  const visible = useMemo(() => {
+    const range = priceRanges.find((r) => r.id === price) ?? priceRanges[0]
+    const q = query.trim().toLowerCase()
+    const list = products.filter((p) => {
+      if (family && familyOf(p.scent)?.id !== family.id) return false
+      if (scent && !same(p.scent, scent)) return false
+      if (size !== "all" && p.size !== size) return false
+      if (p.price < range.min || p.price > range.max) return false
+      if (q && ![p.name, p.scent, p.description].some((v) => v?.toLowerCase().includes(q))) return false
+      return true
+    })
+    switch (sortBy) {
+      case "price-low":
+        return [...list].sort((a, b) => a.price - b.price)
+      case "price-high":
+        return [...list].sort((a, b) => b.price - a.price)
+      case "rating":
+        return [...list].sort((a, b) => Number(b.rating) - Number(a.rating))
+      case "name":
+        return [...list].sort((a, b) => a.name.localeCompare(b.name))
+      default:
+        return list
+    }
+  }, [products, family, scent, size, price, query, sortBy])
+
+  const hasFilters = Boolean(family || scent || query || size !== "all" || price !== "all")
+  const clearAll = () => {
+    setQuery("")
+    setSize("all")
+    setPrice("all")
+    setUrl({})
+  }
+
+  return (
+    <main className="flex-1">
+      {/* Header */}
+      <section className="bg-secondary/40">
+        <div className="container mx-auto px-4 pb-10 pt-14 md:pt-20">
+          <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div>
+              <h1 className="type-display text-foreground">{family ? `${family.name} candles` : "Shop candles"}</h1>
+              <p className="type-lede mt-5 max-w-[52ch] text-muted-foreground">
+                {family
+                  ? `${family.note}. ${family.scents.join(", ")}, all in 100% natural soy wax.`
+                  : "Every candle is handmade and hand-poured in 100% natural soy wax. Choose a scent family to narrow it down."}
+              </p>
+            </div>
+          </div>
+
+          {/* Families: the primary way to browse */}
+          <div className="mt-10 flex flex-wrap gap-2" role="group" aria-label="Scent family">
+            <Chip active={!family} onClick={() => setUrl({})} count={products.length || undefined}>
+              All candles
+            </Chip>
+            {scentFamilies.map((f) => (
+              <Chip
+                key={f.id}
+                active={family?.id === f.id}
+                onClick={() => setUrl({ family: family?.id === f.id ? null : f.id })}
+                count={products.length ? (familyCounts[f.id] ?? 0) : undefined}
+              >
+                {f.name}
+              </Chip>
+            ))}
+          </div>
+
+          {family && (
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2" role="group" aria-label="Scent">
+              <span className="text-[0.9375rem] text-muted-foreground">Scent:</span>
+              {[null, ...family.scents].map((s) => {
+                const active = s ? same(scent, s) : !scent
+                return (
+                  <button
+                    key={s ?? "any"}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setUrl({ family: family.id, scent: s })}
+                    className={cn(
+                      "py-1 text-[0.9375rem] underline-offset-[6px] transition-colors",
+                      active
+                        ? "text-foreground underline decoration-primary decoration-2"
+                        : "text-foreground/70 hover:text-foreground",
+                    )}
+                  >
+                    {s ?? `Any ${family.name.toLowerCase()}`}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="container mx-auto px-4 pb-24 pt-8">
+        {/* Toolbar (hidden while there's nothing to search) */}
+        <div className={cn("flex flex-col gap-3 border-b border-border pb-6 lg:flex-row lg:items-center", !isLoading && !error && products.length === 0 && "hidden")}>
+          <div className="relative flex-1 lg:max-w-sm">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <label htmlFor="shop-search" className="sr-only">
+              Search candles
+            </label>
+            <Input
+              id="shop-search"
+              type="search"
+              placeholder="Search by name or scent"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="pl-10 pr-10"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:text-foreground"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap lg:ml-auto">
+            {sizes.length > 1 && (
+              <Select value={size} onValueChange={setSize}>
+                <SelectTrigger className="w-full sm:w-[11rem]" aria-label="Size">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any size</SelectItem>
+                  {sizes.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Select value={price} onValueChange={setPrice}>
+              <SelectTrigger className="w-full sm:w-[11.5rem]" aria-label="Price">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {priceRanges.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="col-span-2 w-full sm:col-span-1 sm:w-[12rem]" aria-label="Sort by">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {sortOptions.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {!isLoading && !error && products.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 py-5 text-[0.9375rem]">
+            <p className="text-muted-foreground" aria-live="polite">
+              {visible.length === products.length
+                ? `${visible.length} ${visible.length === 1 ? "candle" : "candles"}`
+                : `Showing ${visible.length} of ${products.length} candles`}
+            </p>
+            {hasFilters && (
+              <button
+                type="button"
+                onClick={clearAll}
+                className="text-foreground underline decoration-primary/50 underline-offset-4 hover:decoration-primary"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="pt-8">
+            <ProductGridSkeleton count={8} />
+          </div>
+        ) : error ? (
+          <div className="mx-auto max-w-md py-20 text-center">
+            <h2 className="type-heading text-foreground">Couldn&apos;t load the shop</h2>
+            <p className="mt-3 text-muted-foreground">{error}</p>
+            <Button className="mt-6" onClick={() => setReloadKey((k) => k + 1)}>
+              Try again
+            </Button>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="jar-label mx-auto mt-12 max-w-lg px-8 py-10 text-center">
+            <h2 className="type-heading text-foreground">New candles are being poured</h2>
+            <p className="mt-3 text-muted-foreground">
+              Nothing is listed online right now. Call to order, or to hear when the next batch is ready.
+            </p>
+            <Button asChild size="lg" className="mt-6">
+              <a href={BRAND.phoneHref}>
+                <Phone aria-hidden />
+                Call {BRAND.phone}
+              </a>
+            </Button>
+          </div>
+        ) : visible.length === 0 ? (
+          <div className="mx-auto max-w-md py-20 text-center">
+            <h2 className="type-heading text-foreground">No candles match those filters</h2>
+            <p className="mt-3 text-muted-foreground">
+              {scent
+                ? `${scent} isn't listed right now. Try another ${family?.name.toLowerCase()} scent, or call to ask about it.`
+                : "Try a different scent family or price, or clear the filters to see everything."}
+            </p>
+            <Button variant="outline" className="mt-6" onClick={clearAll}>
+              Clear filters
+            </Button>
+          </div>
+        ) : (
+          <div className="grid gap-x-6 gap-y-14 pt-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {visible.map((product, i) => (
+              <ProductCard key={product.id} product={product} priority={i < 4} />
+            ))}
+          </div>
+        )}
+      </section>
+    </main>
+  )
+}
+
+export default function ShopPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <Navigation />
-
-      <main className="flex-1">
-        {/* Header */}
-        <section className="bg-gradient-to-b from-secondary/50 to-background py-12 md:py-16">
-          <div className="container mx-auto px-4">
-            <Breadcrumbs items={[{ label: "Shop" }]} />
-            <h1 className="font-serif text-4xl font-bold text-foreground md:text-5xl text-balance">Our Collection</h1>
-            <p className="mt-4 text-muted-foreground leading-relaxed">
-              Explore our handcrafted candles in various scents and sizes
-            </p>
-          </div>
-        </section>
-
-        {/* Products Section */}
-        <section className="py-12">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-col gap-8 lg:flex-row">
-              {/* Desktop Filters */}
-              <aside className="hidden lg:block lg:w-64 lg:flex-shrink-0">
-                <div className="sticky top-24 space-y-6">
-                  <div>
-                    <h2 className="mb-4 font-serif text-2xl font-bold text-foreground">Filters</h2>
-                    <FilterSection />
-                  </div>
-                </div>
-              </aside>
-
-              {/* Products Grid */}
-              <div className="flex-1">
-                {/* Search Bar */}
-                <div className="mb-6">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="Search products..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 pr-10"
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery("")}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                  {isSearching && searchQuery && (
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Searching for "{searchQuery}"... {filteredProducts.length} results found
-                    </p>
-                  )}
-                </div>
-
-                {/* Mobile Filter and Sort Bar */}
-                <div className="mb-6 flex items-center justify-between gap-4">
-                  <Sheet>
-                    <SheetTrigger asChild>
-                      <Button variant="outline" className="lg:hidden bg-transparent">
-                        <Filter className="mr-2 h-4 w-4" />
-                        Filters
-                        {hasActiveFilters && (
-                          <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-                            !
-                          </span>
-                        )}
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-[300px] overflow-y-auto">
-                      <SheetHeader>
-                        <SheetTitle>Filters</SheetTitle>
-                      </SheetHeader>
-                      <div className="mt-6">
-                        <FilterSection />
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Sort by:</span>
-                    <Select value={sortBy} onValueChange={setSortBy}>
-                      <SelectTrigger className="w-[160px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="featured">Featured</SelectItem>
-                        <SelectItem value="price-low">Price: Low to High</SelectItem>
-                        <SelectItem value="price-high">Price: High to Low</SelectItem>
-                        <SelectItem value="rating">Highest Rated</SelectItem>
-                        <SelectItem value="name">Name: A to Z</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Products Count */}
-                <p className="mb-6 text-sm text-muted-foreground">
-                  Showing {filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"}
-                </p>
-
-                {/* Loading State */}
-                {isLoading && (
-                  <div className="flex flex-col items-center justify-center py-16">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                    <p className="mt-4 text-muted-foreground">Loading products...</p>
-                  </div>
-                )}
-
-                {/* Error State */}
-                {error && !isLoading && (
-                  <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <p className="text-lg font-medium text-destructive">{error}</p>
-                    <Button onClick={() => window.location.reload()} className="mt-4">
-                      Try Again
-                    </Button>
-                  </div>
-                )}
-
-                {/* Products Grid */}
-                {!isLoading && !error && filteredProducts.length > 0 ? (
-                  <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                    {filteredProducts.map((product) => (
-                      <div key={product.id}>
-                        <Card className="group h-full overflow-hidden transition-shadow hover:shadow-lg">
-                          <Link href={`/product/${product.id}`}>
-                            <div className="relative aspect-square overflow-hidden bg-muted">
-                              <Image
-                                src={product.image || "/placeholder.svg"}
-                                alt={product.name}
-                                fill
-                                className="object-cover transition-transform duration-300 group-hover:scale-105"
-                              />
-                              {product.stock < 10 && (
-                                <div className="absolute right-2 top-2 rounded-full bg-destructive px-3 py-1 text-xs font-semibold text-destructive-foreground">
-                                  Low Stock
-                                </div>
-                              )}
-                              <div className="absolute right-2 bottom-2">
-                                <WishlistButton product={{ ...product, reviews: [] }} variant="outline" />
-                              </div>
-                            </div>
-                          </Link>
-                          <CardContent className="p-4 space-y-3">
-                            <Link href={`/product/${product.id}`}>
-                              <h3 className="font-semibold text-foreground text-balance hover:text-primary transition-colors">
-                                {product.name}
-                              </h3>
-                              <p className="mt-1 text-sm text-muted-foreground">{product.scent}</p>
-                              <p className="mt-1 text-xs text-muted-foreground">{product.size}</p>
-                              <div className="mt-3 flex items-center justify-between">
-                                <span className="text-lg font-semibold text-primary">
-                                  KES {product.price.toLocaleString()}
-                                </span>
-                                <div className="flex items-center gap-1">
-                                  <Star className="h-4 w-4 fill-primary text-primary" />
-                                  <span className="text-sm text-muted-foreground">{product.rating}</span>
-                                </div>
-                              </div>
-                            </Link>
-                            <QuickViewButton product={{ ...product, reviews: [] }} />
-                          </CardContent>
-                        </Card>
-                      </div>
-                    ))}
-                  </div>
-                ) : !isLoading && !error ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <p className="text-lg font-medium text-foreground">No products found</p>
-                    <p className="mt-2 text-sm text-muted-foreground">Try adjusting your filters</p>
-                    <Button onClick={clearFilters} className="mt-4">
-                      Clear Filters
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-
+      <Suspense
+        fallback={
+          <main className="container mx-auto flex-1 px-4 py-20">
+            <ProductGridSkeleton count={8} />
+          </main>
+        }
+      >
+        <ShopContent />
+      </Suspense>
       <Footer />
     </div>
   )

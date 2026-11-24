@@ -199,7 +199,7 @@ export const products: Product[] = [
   },
 ]
 
-export const scents = ["All", "Lavender", "Vanilla", "Citrus", "Fresh", "Floral", "Spice", "Woody"]
+export const scents = ["All", "Lavender", "Jasmine", "Rose", "Vanilla", "Coffee", "Sandalwood", "Green Tea", "Orange", "Lemon", "Strawberry"]
 export const sizes = ["All", "Small (100g)", "Medium (200g)", "Large (300g)"]
 export const priceRanges = [
   { label: "All", min: 0, max: Number.POSITIVE_INFINITY },

@@ -1,261 +1,118 @@
-"use client"
-
-import type React from "react"
-
-import { useState } from "react"
+import Link from "next/link"
+import type { Metadata } from "next"
+import { MessageSquare, Phone } from "lucide-react"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Mail, Phone, MapPin, Clock } from "lucide-react"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { BRAND, allScents } from "@/lib/scents"
+import { DELIVERY_FEE, FREE_DELIVERY_FROM, kes } from "@/lib/pricing"
+
+export const metadata: Metadata = {
+  title: "Contact | Smells by Kourtney",
+  description: `Call or text ${BRAND.phone} to order or ask a question.`,
+}
+
+const smsHref = BRAND.phoneHref.replace("tel:", "sms:")
+
+const faqs: { q: string; a: React.ReactNode }[] = [
+  {
+    q: "How do I order?",
+    a: (
+      <>
+        Add candles to your cart in the <Link href="/shop">shop</Link> and check out, or call {BRAND.phone} and order by
+        phone.
+      </>
+    ),
+  },
+  {
+    q: "How do I pay?",
+    a: "Cash on delivery: pay the rider when your candles arrive. M-Pesa payments are coming soon.",
+  },
+  {
+    q: "How much is delivery?",
+    a: `Free on orders of ${kes(FREE_DELIVERY_FROM)} or more. Smaller orders cost ${kes(DELIVERY_FEE)} to deliver.`,
+  },
+  {
+    q: "What are the candles made of?",
+    a: "100% natural soy wax. Every candle is handmade and hand-poured.",
+  },
+  {
+    q: "Which scents do you have?",
+    a: `${allScents.join(", ")}.`,
+  },
+  {
+    q: "Where's my order?",
+    a: (
+      <>
+        Use <Link href="/track-order">Track an order</Link> with the order number from your confirmation email, or call
+        us.
+      </>
+    ),
+  },
+  {
+    q: "How do I get the best burn?",
+    a: "The first time you light it, let the whole top melt to the edges. Trim the wick to about 5mm before each light, and burn for no more than 4 hours at a time.",
+  },
+]
 
 export default function ContactPage() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    subject: "",
-    message: "",
-  })
-
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    setIsSubmitting(false)
-    setSubmitted(true)
-
-    // Reset form after 3 seconds
-    setTimeout(() => {
-      setFormData({ name: "", email: "", subject: "", message: "" })
-      setSubmitted(false)
-    }, 3000)
-  }
-
-  const handleChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
-
   return (
     <div className="flex min-h-screen flex-col">
       <Navigation />
 
       <main className="flex-1">
-        {/* Header */}
-        <section className="bg-gradient-to-b from-secondary/50 to-background py-16 md:py-24">
-          <div className="container mx-auto px-4">
-            <div className="mx-auto max-w-3xl text-center">
-              <h1 className="font-serif text-4xl font-bold text-foreground md:text-5xl">Get In Touch</h1>
-              <p className="mt-6 text-lg text-muted-foreground leading-relaxed">
-                Have a question or special request? We'd love to hear from you.
-              </p>
-            </div>
-          </div>
-        </section>
+        <div className="container mx-auto grid gap-16 px-4 pb-24 pt-14 md:pt-20 lg:grid-cols-[1fr_1.15fr] lg:gap-24">
+          <section>
+            <h1 className="type-display text-foreground">Get in touch</h1>
+            <p className="type-lede mt-5 max-w-[40ch] text-muted-foreground">
+              Questions, orders or gift ideas: the quickest way to reach us is by phone.
+            </p>
 
-        {/* Contact Section */}
-        <section className="py-16 md:py-24">
-          <div className="container mx-auto px-4">
-            <div className="grid gap-12 lg:grid-cols-3">
-              {/* Contact Info */}
-              <div className="space-y-8 lg:col-span-1">
-                <div>
-                  <h2 className="font-serif text-2xl font-bold text-foreground">Contact Information</h2>
-                  <p className="mt-2 text-muted-foreground leading-relaxed">
-                    Reach out to us through any of these channels
-                  </p>
-                </div>
-
-                <div className="space-y-6">
-                  <Card className="border-border/50">
-                    <CardContent className="flex gap-4 p-6">
-                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
-                        <Mail className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">Email</h3>
-                        <a
-                          href="mailto:hello@luxecandles.com"
-                          className="mt-1 text-sm text-muted-foreground hover:text-primary"
-                        >
-                          hello@luxecandles.com
-                        </a>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-border/50">
-                    <CardContent className="flex gap-4 p-6">
-                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
-                        <Phone className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">Phone</h3>
-                        <a href="tel:+254700000000" className="mt-1 text-sm text-muted-foreground hover:text-primary">
-                          +254 700 000 000
-                        </a>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-border/50">
-                    <CardContent className="flex gap-4 p-6">
-                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
-                        <MapPin className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">Location</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">Nairobi, Kenya</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-border/50">
-                    <CardContent className="flex gap-4 p-6">
-                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
-                        <Clock className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">Business Hours</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">Mon - Fri: 9AM - 6PM</p>
-                        <p className="text-sm text-muted-foreground">Sat: 10AM - 4PM</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-
-              {/* Contact Form */}
-              <div className="lg:col-span-2">
-                <Card>
-                  <CardContent className="p-6 md:p-8">
-                    <h2 className="font-serif text-2xl font-bold text-foreground">Send Us a Message</h2>
-                    <p className="mt-2 text-muted-foreground">Fill out the form below and we'll get back to you soon</p>
-
-                    <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-                      <div className="grid gap-6 sm:grid-cols-2">
-                        <div>
-                          <Label htmlFor="name">Name *</Label>
-                          <Input
-                            id="name"
-                            value={formData.name}
-                            onChange={(e) => handleChange("name", e.target.value)}
-                            placeholder="Your name"
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="email">Email *</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => handleChange("email", e.target.value)}
-                            placeholder="your@email.com"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="subject">Subject *</Label>
-                        <Input
-                          id="subject"
-                          value={formData.subject}
-                          onChange={(e) => handleChange("subject", e.target.value)}
-                          placeholder="How can we help?"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="message">Message *</Label>
-                        <Textarea
-                          id="message"
-                          value={formData.message}
-                          onChange={(e) => handleChange("message", e.target.value)}
-                          placeholder="Tell us more about your inquiry..."
-                          rows={6}
-                          required
-                        />
-                      </div>
-
-                      <Button type="submit" size="lg" disabled={isSubmitting || submitted} className="w-full sm:w-auto">
-                        {submitted ? "Message Sent!" : isSubmitting ? "Sending..." : "Send Message"}
-                      </Button>
-
-                      {submitted && (
-                        <p className="text-sm text-primary">Thank you! We'll get back to you within 24 hours.</p>
-                      )}
-                    </form>
-                  </CardContent>
-                </Card>
+            <div className="jar-label mt-10 px-7 py-8">
+              <p className="text-[0.9375rem] text-muted-foreground">Call or text</p>
+              <a
+                href={BRAND.phoneHref}
+                className="mt-1 block font-serif text-[2.5rem] leading-tight tabular hover:text-primary"
+              >
+                {BRAND.phone}
+              </a>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <a
+                  href={BRAND.phoneHref}
+                  className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-6 text-primary-foreground hover:bg-primary/90"
+                >
+                  <Phone className="h-4 w-4" aria-hidden />
+                  Call
+                </a>
+                <a
+                  href={smsHref}
+                  className="inline-flex h-12 items-center gap-2 rounded-full border border-foreground/25 px-6 hover:border-foreground/60"
+                >
+                  <MessageSquare className="h-4 w-4" aria-hidden />
+                  Send a text
+                </a>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* FAQ Section */}
-        <section className="bg-muted/30 py-16 md:py-24">
-          <div className="container mx-auto px-4">
-            <div className="mx-auto max-w-3xl">
-              <h2 className="text-center font-serif text-3xl font-bold text-foreground md:text-4xl">
-                Frequently Asked Questions
-              </h2>
-
-              <div className="mt-12 space-y-6">
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="font-semibold text-foreground">How long does shipping take?</h3>
-                    <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                      Orders are processed within 1-2 business days and typically arrive within 3-5 business days via
-                      standard shipping.
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="font-semibold text-foreground">What are your candles made from?</h3>
-                    <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                      All our candles are made from 100% natural soy wax and scented with premium essential oils. They
-                      contain no harmful chemicals or synthetic fragrances.
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="font-semibold text-foreground">Do you offer custom orders?</h3>
-                    <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                      Yes! We love creating custom candles for special events and corporate gifts. Contact us to discuss
-                      your requirements.
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="font-semibold text-foreground">What is your return policy?</h3>
-                    <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                      We want you to love your candles! If you're not satisfied, contact us within 7 days of delivery
-                      for a full refund or exchange.
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </div>
-        </section>
+          <section aria-labelledby="faq-heading" className="lg:pt-3">
+            <h2 id="faq-heading" className="type-heading text-foreground">
+              Common questions
+            </h2>
+            <Accordion type="single" collapsible className="mt-6 border-t border-border">
+              {faqs.map((f) => (
+                <AccordionItem key={f.q} value={f.q} className="border-border">
+                  <AccordionTrigger className="py-5 text-left text-base font-normal hover:no-underline">
+                    {f.q}
+                  </AccordionTrigger>
+                  <AccordionContent className="max-w-[60ch] pb-5 text-[0.9375rem] leading-relaxed text-muted-foreground [&_a]:text-foreground [&_a]:underline [&_a]:decoration-primary/50 [&_a]:underline-offset-4">
+                    {f.a}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </section>
+        </div>
       </main>
 
       <Footer />

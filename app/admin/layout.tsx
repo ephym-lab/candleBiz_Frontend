@@ -40,7 +40,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <Link href="/admin/dashboard" className="text-xl font-serif font-bold">
-              Luxe Candles Admin
+              Smells by Kourtney Admin
             </Link>
             <nav className="hidden md:flex items-center gap-6">
               <Link
